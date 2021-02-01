@@ -5,9 +5,10 @@
 #include <errno.h>
 #include "lba.h"
 #include "pba.h"
+#include "jfs.h"
 
 
-void start_parsing(struct disk* d, char *file_name)
+void start_parsing(jfs_t* fs, char *file_name)
 {
     FILE *stream;
     unsigned long lba, n, val;
@@ -34,11 +35,11 @@ void start_parsing(struct disk* d, char *file_name)
             switch (c) {
             case 'R':
                 printf("R %lu, %lu\n", lba, n);
-                d->d_op->read(d, lba, n);
+                fs->jfs_op->read(fs, lba, n);
                 break;
             case 'W':
                 printf("W %lu, %lu\n", lba, n);
-                d->d_op->write(d, lba, n);
+                fs->jfs_op->write(fs, lba, n);
                 break;
             default:
                 fprintf(stderr, "ERROR: parsing instructions failed. Unrecongnized mode.\n");
@@ -81,17 +82,17 @@ int main(int argc, char **argv)
         }
     }
 
-    /* create virtual disk */
-    struct disk d = {0};
-    if (init_disk(&d, size)) {
-        fprintf(stderr, "ERROR: init_disk failed\n");
+/* create virtual jfs */
+    jfs_t *jj;
+    if (jj = init_jfs(1)) {
+        fprintf(stderr, "ERROR: Failed to init_jfs\n");
         exit(EXIT_FAILURE);
     } else {
-        printf("[OK] Init disk\n");
+        printf("[OK] Init init_jfs\n");
     }
 
     /* parse operations file */
-    start_parsing(&d, input_file);
+    start_parsing(jj, input_file);
     printf("Total access time   = %lu ns\n", d.total_access_time);
     printf("Total read size     = %lu sector\n", d.total_read_size / SECTOR_SIZE);
     printf("Total read size     = %lu sector\n", d.total_read_virtual_size / SECTOR_SIZE);

@@ -1,77 +1,52 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "jfs.h"
-#include "IMRSimulator/src/lba.h"
+#include "command_table.h"
+#include "../IMRSimulator/src/lba.h"
 
 jfs_t jfs;
 
-int init_command_table(jfs_t *fs, size_t num)
-{
-    void *p;
-    transaction_head_t *head = &fs->head;
-    fs->head.capacity = num;
-    if (!(p = malloc(sizeof(transaction_t) * num))) {
-        fprintf(stderr, "Error: Failed to allocate jfs command table.\n");
-        exit(EXIT_FAILURE);
-    }
-    head->table = (transaction_t*) p;
-    head->size = 0;
-    head->is_full = table_is_full;
-    return 0;
-}
+jfs_operations jfs_ops {
+    .read = jfs_read,
+    .write = jfs_write,
+};
 
-inline bool table_is_full(transaction_head_t *head)
-{
-    return head->size == head->capacity;
-}
 
-void extend_table(transaction_head_t* head)
-{
-    transaction_t **t = &head->table;
-
-    if (!(*t = calloc(*t, sizeof(**t) * 2 * head->capacity))) {
-        fprintf(stderr, "Error: Failed to extend jfs command table.\n");
-        exit(EXIT_FAILURE);
-    }
-    head->capacity *= 2;
-}
-
-void add_command_table(transaction_head_t *head, unsigned long lba, size_t n, unsigned long jarea_lba)
-{
-    if (table_is_full(head)) {
-        expand_table(head);
-    }
-    transaction_t *t = head->table[head->size];
-    t->lba = lba;
-    t->jarea_lba = jarea_lba;
-    t->size = n;
-    head->size++;
-}
-
-int init_jfs(int size)
+jfs_t *init_jfs(int size)
 {
     void *p = NULL;
 
     if (!(p = malloc(sizeof(struct disk))))
         goto done_create_disk;
-    jfs.d = p;
-    init_disk(jfs.d, size);
+    jfs.d = (struct disk *)p;
+    if (init_disk(jfs.d, size)) {
+        fprintf(stderr, "Error: Failed to init_disk.\n");
+        exit(EXIT_FAILURE);
+    }
 
     jfs.jarea.max_jarea_num = jfs.d->max_block_num / 10;
-    if (init_command_table(jfs.jarea.max_jarea_num))
+    if (init_command_table(&jfs.head, jfs.jarea.max_jarea_num))
         goto done_command_table;
 
-    return 0;
+    jfs.jfs_op = &jfs_ops;
+
+    return &jfs;
 done_command_table:
     free(jfs.d);
 done_create_disk:
-    return -1;
+    return NULL;
+}
+
+void end_jfs(jfs_t *fs)
+{
+    end_disk(fs->d);
+    end_command_table(&fs->head);
 }
 
 int jarea_write(jfs_t *fs, unsigned long lba, size_t n)
 {
     fs->jarea.jarea_size += BYTE_TO_BLOCK(n);
-    return lba_write(fs->d, lba, n);
+    return fs->d->d_op->write(fs->d, lba, n);
 }
 
 int jarea_read(jfs_t *fs, unsigned long lba, size_t n) 
@@ -81,23 +56,39 @@ int jarea_read(jfs_t *fs, unsigned long lba, size_t n)
         fprintf(stderr, "Error: Failed to Read jarea. Out of boundary.\n");
         return 0;
     }
-    return lba_read(fs->d, lba, n);
+    return fs->d->d_op->read(fs->d, lba, n);
+}
+
+bool jarea_is_full(jarea_t *jarea, unsigned long lba, size_t n)
+{
+    return (jarea->jarea_size + n) > jarea->max_jarea_num;
+}
+
+void jfs_check_out(jfs_t *fs)
+{
+    unsigned long offset = fs->jarea.max_jarea_num;
+    transaction_head_t *head = &fs->head;
+    for (size_t i = 0; i < head->size; i++) {
+        transaction_t *t = &head->table[i];
+        fs->d->d_op->write(fs->d, t->lba + offset, t->size);
+    }
+    head->size = 0;
 }
 
 int jfs_write(jfs_t *fs, unsigned long lba, size_t n)
 {
-    if (jarea_is_full(fs, lba, n))
+    if (jarea_is_full(&fs->jarea, lba, n))
         jfs_check_out(fs);
     unsigned long jarea_lba = fs->jarea.jarea_size;
-    add_command_table(fs, lba, n, jarea_lba);
+    add_command_table(&fs->head, lba, n, jarea_lba);
     return jarea_write(fs, jarea_lba, n);
 }
 
 int jfs_read(jfs_t *fs, unsigned long lba, size_t n)
 {
     unsigned long jarea_lba = 0;
-    if (in_command_table(fs, lba, n, &jarea_lba))
-        return jarea_read(fs->d, jarea_lba, n);
+    if (in_command_table(&fs->head, lba, n, &jarea_lba))
+        return jarea_read(fs, jarea_lba, n);
     else
         return lba_read(fs->d, lba, n);
 }
