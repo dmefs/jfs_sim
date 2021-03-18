@@ -2,15 +2,14 @@
 #include <stdlib.h>
 #include "jfs.h"
 #include "command_table.h"
-#include "../IMRSimulator/src/lba.h"
+#include "lba.h"
 
 jfs_t jfs;
 
-jfs_operations jfs_ops {
+jfs_operations jfs_ops = {
     .read = jfs_read,
     .write = jfs_write,
 };
-
 
 jfs_t *init_jfs(int size)
 {
@@ -24,15 +23,18 @@ jfs_t *init_jfs(int size)
         exit(EXIT_FAILURE);
     }
 
-    jfs.jarea.max_jarea_num = jfs.d->max_block_num / 10;
+    if (init_jarea(&jfs.jarea, jfs.d->max_block_num))
+        goto done_jarea;
     if (init_command_table(&jfs.head, jfs.jarea.max_jarea_num))
         goto done_command_table;
 
     jfs.jfs_op = &jfs_ops;
 
     return &jfs;
+
 done_command_table:
     free(jfs.d);
+done_jarea:
 done_create_disk:
     return NULL;
 }
@@ -43,52 +45,78 @@ void end_jfs(jfs_t *fs)
     end_command_table(&fs->head);
 }
 
-int jarea_write(jfs_t *fs, unsigned long lba, size_t n)
+int init_jarea(jarea_t *jarea, unsigned long max_block_size)
 {
-    fs->jarea.jarea_size += BYTE_TO_BLOCK(n);
-    return fs->d->d_op->write(fs->d, lba, n);
+    unsigned long jarea_block_size = max_block_size / 10;
+    jarea->max_jarea_num = jarea_block_size;
+    jarea->capacity = jarea_block_size;
+    jarea->size = 0;
+    return 0;
 }
 
-int jarea_read(jfs_t *fs, unsigned long lba, size_t n) 
+void end_jarea(jarea_t *jarea)
 {
-    size_t num = BYTE_TO_BLOCK(n);
-    if ((lba + num) > fs->jarea.max_jarea_num) {
-        fprintf(stderr, "Error: Failed to Read jarea. Out of boundary.\n");
+    jarea->max_jarea_num = 0;
+    jarea->capacity = 0;
+    jarea->size = 0;
+}
+
+int jarea_write(jfs_t *fs, unsigned long lba, size_t n, int fid)
+{
+    fs->jarea.size += n;
+    return fs->d->d_op->write(fs->d, lba, n, fid);
+}
+
+int jarea_read(jfs_t *fs, unsigned long lba, size_t n, int fid) 
+{
+    if ((lba + n) > fs->jarea.max_jarea_num) {
+        fprintf(stderr, "Error: Failed to Read jarea. Out of boundary, lba: %lu, n: %lu\n", lba, n);
         return 0;
     }
-    return fs->d->d_op->read(fs->d, lba, n);
+    return fs->d->d_op->read(fs->d, lba, n, fid);
 }
 
-bool jarea_is_full(jarea_t *jarea, unsigned long lba, size_t n)
+bool jarea_is_full(jarea_t *jarea, size_t n)
 {
-    return (jarea->jarea_size + n) > jarea->max_jarea_num;
+    return ((jarea->size >= jarea->capacity) || ((jarea->size + n) >= jarea->capacity));
 }
 
-void jfs_check_out(jfs_t *fs)
+void jfs_check_out(jfs_t *jfs)
 {
-    unsigned long offset = fs->jarea.max_jarea_num;
-    transaction_head_t *head = &fs->head;
+    flush_command_table(&jfs->head, jfs->d, jfs->jarea.max_jarea_num);
+    flush_jarea(&jfs->jarea);
+}
+
+int jfs_write(jfs_t *fs, unsigned long lba, size_t n, int fid)
+{
+    if (jarea_is_full(&fs->jarea, n))
+        jfs_check_out(fs);
+    unsigned long jarea_lba = fs->jarea.size;
+    add_command_table(&fs->head, lba, n, jarea_lba, fid);
+    return jarea_write(fs, jarea_lba, n, fid);
+}
+
+int jfs_read(jfs_t *fs, unsigned long lba, size_t n, int fid)
+{
+    unsigned long jarea_lba = 0;
+    if (in_command_table(&fs->head, lba, n, &jarea_lba, fid))
+        return jarea_read(fs, jarea_lba, n, fid);
+    else
+        return lba_read(fs->d, lba, n, fid);
+}
+
+void flush_command_table(transaction_head_t *head, struct disk *d, unsigned long offset)
+{
+    printf("flush command table\n");
     for (size_t i = 0; i < head->size; i++) {
         transaction_t *t = &head->table[i];
-        fs->d->d_op->write(fs->d, t->lba + offset, t->size);
+        d->d_op->read(d, t->jarea_lba, t->size, t->fid);
+        d->d_op->write(d, t->lba + offset, t->size, t->fid);
     }
     head->size = 0;
 }
 
-int jfs_write(jfs_t *fs, unsigned long lba, size_t n)
+void flush_jarea(jarea_t *jarea)
 {
-    if (jarea_is_full(&fs->jarea, lba, n))
-        jfs_check_out(fs);
-    unsigned long jarea_lba = fs->jarea.jarea_size;
-    add_command_table(&fs->head, lba, n, jarea_lba);
-    return jarea_write(fs, jarea_lba, n);
-}
-
-int jfs_read(jfs_t *fs, unsigned long lba, size_t n)
-{
-    unsigned long jarea_lba = 0;
-    if (in_command_table(&fs->head, lba, n, &jarea_lba))
-        return jarea_read(fs, jarea_lba, n);
-    else
-        return lba_read(fs->d, lba, n);
+    jarea->size = 0;
 }

@@ -10,18 +10,12 @@ int init_command_table(transaction_head_t *head, size_t num)
     }
     head->table = (transaction_t*) p;
     head->size = 0;
-    head->is_full = table_is_full;
     return 0;
 }
 
 void end_command_table(transaction_head_t *head)
 {
     free(head->table);
-}
-
-inline bool table_is_full(transaction_head_t *head)
-{
-    return head->size == head->capacity;
 }
 
 void extend_table(transaction_head_t* head)
@@ -35,7 +29,7 @@ void extend_table(transaction_head_t* head)
     head->capacity *= 2;
 }
 
-void add_command_table(transaction_head_t *head, unsigned long lba, size_t n, unsigned long jarea_lba)
+void add_command_table(transaction_head_t *head, unsigned long lba, size_t n, unsigned long jarea_lba, int fid)
 {
     if (table_is_full(head)) {
         extend_table(head);
@@ -44,14 +38,15 @@ void add_command_table(transaction_head_t *head, unsigned long lba, size_t n, un
     t->lba = lba;
     t->jarea_lba = jarea_lba;
     t->size = n;
+    t->fid = fid;
     head->size++;
 }
 
-bool in_command_table(transaction_head_t *head,unsigned long lba,size_t n,unsigned long *jarea_lba)
+bool in_command_table(transaction_head_t *head,unsigned long lba,size_t n,unsigned long *jarea_lba, int fid)
 {
-    for (size_t i = head->size - 1; (i + 1) > 0; i--) {
+    for (size_t i = 0; i < head->size; i++) {
         transaction_t *t = &head->table[i];
-        if ((t->lba == lba) && (t->size = n)) {
+        if ((t->lba == lba) && (t->size = n) && (t->fid == fid)) {
             *jarea_lba = t->jarea_lba;
             return true;
         }

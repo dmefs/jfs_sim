@@ -15,6 +15,7 @@ void start_parsing(jfs_t* fs, char *file_name)
     char *line, c;
     ssize_t nread;
     size_t len;
+    int fid = 0;
 
     line = NULL;
     len = 0;
@@ -30,19 +31,15 @@ void start_parsing(jfs_t* fs, char *file_name)
             p++;
         if (*p == '#')
             continue;
-        if ((val = sscanf(p, "%c %lu %lu\n", &c, &lba, &n)) == 3) {
-            printf("Command: ");
+        if ((val = sscanf(p, "%c %d %lu %lu\n", &c, &fid, &lba, &n)) == 4) {
             switch (c) {
             case 'R':
-                printf("R %lu, %lu\n", lba, n);
-                fs->jfs_op->read(fs, lba, n);
+                fs->jfs_op->read(fs, lba, n, fid);
                 break;
             case 'W':
-                printf("W %lu, %lu\n", lba, n);
-                fs->jfs_op->write(fs, lba, n);
+                fs->jfs_op->write(fs, lba, n, fid);
                 break;
             default:
-                fprintf(stderr, "ERROR: parsing instructions failed. Unrecongnized mode.\n");
                 break;
             }
         } else {
@@ -50,6 +47,7 @@ void start_parsing(jfs_t* fs, char *file_name)
             exit(EXIT_FAILURE);
         }
     }
+    jfs_check_out(fs);
     free(line);
     fclose(stream);
 }
@@ -84,7 +82,7 @@ int main(int argc, char **argv)
 
 /* create virtual jfs */
     jfs_t *jj;
-    if (jj = init_jfs(1)) {
+    if (!(jj = init_jfs(size))) {
         fprintf(stderr, "ERROR: Failed to init_jfs\n");
         exit(EXIT_FAILURE);
     } else {
@@ -92,11 +90,33 @@ int main(int argc, char **argv)
     }
 
     /* parse operations file */
+    printf("Start parsing...\n");
     start_parsing(jj, input_file);
-    printf("Total access time   = %lu ns\n", d.total_access_time);
-    printf("Total read size     = %lu sector\n", d.total_read_size / SECTOR_SIZE);
-    printf("Total read size     = %lu sector\n", d.total_read_virtual_size / SECTOR_SIZE);
-    printf("Total write size    = %lu sector\n", d.total_write_size / SECTOR_SIZE);
-    end_disk(&d);
+    printf("Start parsing[OK]\n");
+
+    struct disk *d = jj->d;
+
+    printf("Disk information.\n");
+    printf("Size of disk = %d GB\n", size);
+
+    printf("Total number of instructions        = %16lld instructions\n", jfs.ins_count);
+    printf("Total number of read instructions   = %16lld instructions\n", jfs.read_ins_count);
+    printf("Total number of write instructions  = %16lld instructions\n", jfs.write_ins_count);
+    printf("Total number of delete instructions = %16lld instructions\n", jfs.delete_ins_count);
+    printf("\n");
+    printf("Total access time           = %17lu ns\n", d->total_access_time);
+    printf("Total write time            = %17lu ns\n", d->total_write_time);
+    printf("Total read time             = %17lu ns\n", d->total_read_time);
+    printf("Total read virtual time     = %17lu ns\n", d->total_read_time);
+    printf("\n");
+    printf("Total read size             = %17lu MB\n", d->total_read_size / MEGABYTE);
+    printf("Total read virtual size     = %17lu MB\n", d->total_read_virtual_size / MEGABYTE);
+    printf("Total write virtual size    = %17lu MB\n", d->total_write_virtual_size / MEGABYTE);
+    printf("Total write actual size     = %17lu MB\n", d->total_write_actual_size / MEGABYTE);
+    printf("Total delete virtual size   = %17lu MB\n", d->total_delete_write_virtual_size / MEGABYTE);
+    printf("Total delete actual size    = %17lu MB\n", d->total_delete_write_actual_size / MEGABYTE);
+
+    end_jfs(jj);
+
     return 0;
 }
