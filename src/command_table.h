@@ -9,6 +9,7 @@ typedef struct {
     unsigned long jarea_lba;
     size_t size;
     int fid;
+    bool valid;
 } transaction_t;
 
 typedef struct _transaction_head_t transaction_head_t;

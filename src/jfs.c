@@ -9,6 +9,7 @@ jfs_t jfs;
 jfs_operations jfs_ops = {
     .read = jfs_read,
     .write = jfs_write,
+    .delete = jfs_delete,
 };
 
 jfs_t *init_jfs(int size)
@@ -105,13 +106,31 @@ int jfs_read(jfs_t *fs, unsigned long lba, size_t n, int fid)
         return lba_read(fs->d, lba, n, fid);
 }
 
+void delete_fid_command_table(transaction_head_t *head, int fid)
+{
+    for (size_t i = 0; i < head->size; i++) {
+        transaction_t *t = &head->table[i];
+        if (t->fid == fid) {
+            t->valid = false;
+        }
+    }
+}
+
+int jfs_delete(jfs_t *fs, unsigned long lba, size_t n, int fid)
+{
+    delete_fid_command_table(&fs->head, fid);
+    return lba_delete(fs->d, lba, n, fid);
+}
+
 void flush_command_table(transaction_head_t *head, struct disk *d, unsigned long offset)
 {
     printf("flush command table\n");
     for (size_t i = 0; i < head->size; i++) {
         transaction_t *t = &head->table[i];
-        d->d_op->read(d, t->jarea_lba, t->size, t->fid);
-        d->d_op->write(d, t->lba + offset, t->size, t->fid);
+        if (t->valid) {
+            d->d_op->read(d, t->jarea_lba, t->size, t->fid);
+            d->d_op->write(d, t->lba + offset, t->size, t->fid);
+        }
     }
     head->size = 0;
 }

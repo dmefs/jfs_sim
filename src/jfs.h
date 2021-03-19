@@ -19,6 +19,7 @@ typedef struct _jfs_operations jfs_operations;
 struct _jfs_operations {
     int (*read)(jfs_t *fs, unsigned long lba, size_t n, int fid);
     int (*write)(jfs_t *fs, unsigned long lba, size_t n, int fid);
+    int (*delete)(jfs_t *fs, unsigned long lba, size_t n, int fid);
 };
 
 struct _jfs_t {

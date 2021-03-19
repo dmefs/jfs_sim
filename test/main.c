@@ -31,13 +31,20 @@ void start_parsing(jfs_t* fs, char *file_name)
             p++;
         if (*p == '#')
             continue;
+        fs->ins_count++;
         if ((val = sscanf(p, "%c %d %lu %lu\n", &c, &fid, &lba, &n)) == 4) {
             switch (c) {
             case 'R':
+                fs->read_ins_count++;
                 fs->jfs_op->read(fs, lba, n, fid);
                 break;
             case 'W':
+                fs->write_ins_count++;
                 fs->jfs_op->write(fs, lba, n, fid);
+                break;
+            case 'D':
+                fs->delete_ins_count++;
+                fs->jfs_op->delete(fs, lba, n, fid);
                 break;
             default:
                 break;
@@ -109,7 +116,7 @@ int main(int argc, char **argv)
     printf("Total read time             = %17lu ns\n", d->total_read_time);
     printf("Total read virtual time     = %17lu ns\n", d->total_read_time);
     printf("\n");
-    printf("Total read size             = %17lu MB\n", d->total_read_size / MEGABYTE);
+    printf("Total read actual size      = %17lu MB\n", d->total_read_actual_size / MEGABYTE);
     printf("Total read virtual size     = %17lu MB\n", d->total_read_virtual_size / MEGABYTE);
     printf("Total write virtual size    = %17lu MB\n", d->total_write_virtual_size / MEGABYTE);
     printf("Total write actual size     = %17lu MB\n", d->total_write_actual_size / MEGABYTE);
