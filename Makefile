@@ -17,7 +17,7 @@ CFLAGS=-Wfatal-errors -Wall
 ut_main: dirs
 	$(CXX) $(CPPFLAGS) $(IMRFLAGS) test/ut_main.cpp $(SRC) $(IMRS) -o bin/ut_main $(LDFLAGS)
 
-imr: $(OBJS)
+imr: $(OBJS) dirs
 	$(CC) $(CFLAGS) test/main.c -o bin/jfs $(JFS_OBJS) $(IMR_OBJS) -IIMRSimulator/src -Isrc -g
 
 test: imr
