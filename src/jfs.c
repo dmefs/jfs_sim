@@ -28,13 +28,16 @@ jfs_t *init_jfs(int size)
         goto done_jarea;
     if (init_command_table(&jfs.head, jfs.jarea.max_jarea_num))
         goto done_command_table;
-
+    if (init_reference_table(&reference_table, jfs.d->max_block_num))
+        goto done_reference_table;
     jfs.jfs_op = &jfs_ops;
 
     return &jfs;
 
+done_reference_table:
+    end_command_table(&jfs.head);
 done_command_table:
-    free(jfs.d);
+    end_disk(jfs.d);
 done_jarea:
 done_create_disk:
     return NULL;
@@ -42,8 +45,10 @@ done_create_disk:
 
 void end_jfs(jfs_t *fs)
 {
-    end_disk(fs->d);
+    end_reference_table(reference_table);
     end_command_table(&fs->head);
+    end_jarea(&jfs.jarea);
+    end_disk(fs->d);
 }
 
 int init_jarea(jarea_t *jarea, unsigned long max_block_size)
@@ -129,6 +134,7 @@ void flush_command_table(transaction_head_t *head, struct disk *d, unsigned long
         if (t->valid) {
             d->d_op->read(d, t->jarea_lba, t->size, t->fid);
             d->d_op->write(d, t->lba + offset, t->size, t->fid);
+            invalid_reference_table(reference_table, t->lba);
         }
     }
     head->size = 0;

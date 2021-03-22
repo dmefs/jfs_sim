@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 #include "lba.h"
 #include "pba.h"
 #include "jfs.h"
@@ -63,6 +64,7 @@ int main(int argc, char **argv)
 {
     int size, opt, len;
     char input_file[MAX_LENS+1];
+    time_t start_time, end_time;
 
     opt         = 0;
 
@@ -98,14 +100,25 @@ int main(int argc, char **argv)
 
     /* parse operations file */
     printf("Start parsing...\n");
+    time(&start_time);
     start_parsing(jj, input_file);
+    time(&end_time);
     printf("Start parsing[OK]\n");
 
     struct disk *d = jj->d;
 
+
+    double elapsed = difftime(end_time, start_time);
+    printf("-------------------------\n");
+    printf("Time information:\n\n");
+    printf("%f seconds total\n", elapsed);
+
+    printf("-------------------------\n");
     printf("Disk information.\n");
     printf("Size of disk = %d GB\n", size);
 
+    printf("-------------------------\n");
+    printf("Transaction information:\n\n");
     printf("Total number of instructions        = %16lld instructions\n", jfs.ins_count);
     printf("Total number of read instructions   = %16lld instructions\n", jfs.read_ins_count);
     printf("Total number of write instructions  = %16lld instructions\n", jfs.write_ins_count);

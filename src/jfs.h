@@ -39,9 +39,10 @@ jfs_t *init_jfs(int size);
 void end_jfs(jfs_t *fs);
 
 int init_jarea(jarea_t *jarea, unsigned long max_block_size);
+void end_jarea(jarea_t *jarea);
 int jarea_write(jfs_t *fs, unsigned long lba, size_t n, int fid);
 int jarea_read(jfs_t *fs, unsigned long lba, size_t n, int fid);
-// 
+
 int jfs_write(jfs_t *fs, unsigned long lba, size_t n, int fid);
 int jfs_read(jfs_t *fs, unsigned long lba, size_t n, int fid);
 int jfs_delete(jfs_t *fs, unsigned long lba, size_t n, int fid);
