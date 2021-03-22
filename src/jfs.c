@@ -124,7 +124,6 @@ int jfs_delete(jfs_t *fs, unsigned long lba, size_t n, int fid)
 
 void flush_command_table(transaction_head_t *head, struct disk *d, unsigned long offset)
 {
-    printf("flush command table\n");
     for (size_t i = 0; i < head->size; i++) {
         transaction_t *t = &head->table[i];
         if (t->valid) {
