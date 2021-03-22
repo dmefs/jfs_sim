@@ -20,8 +20,11 @@ ut_main: dirs
 imr: $(OBJS) dirs
 	$(CC) $(CFLAGS) test/main.c -o bin/jfs $(JFS_OBJS) $(IMR_OBJS) -IIMRSimulator/src -Isrc -g
 
-test: imr
-	./bin/jfs -i instructions/10m_100 -s 2
+test1g: imr
+	./bin/jfs -i instructions/1m_1024 -s 2
+
+test100g: imr
+	./bin/jfs -i instructions/1g_100 -s 110
 
 ut_test: ut_main
 	./bin/ut_main
