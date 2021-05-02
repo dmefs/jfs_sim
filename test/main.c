@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 void
 start_parsing(jfs_t* fs, char* file_name)
@@ -114,11 +115,6 @@ main(int argc, char** argv)
     printf("Time information:\n\n");
     printf("%f seconds total\n", elapsed);
 
-    double elapsed = difftime(end_time, start_time);
-    printf("-------------------------\n");
-    printf("Time information:\n\n");
-    printf("%f seconds total\n", elapsed);
-
     printf("-------------------------\n");
     printf("Disk information.\n");
     printf("Size of disk = %d GB\n", size);
@@ -133,41 +129,38 @@ main(int argc, char** argv)
     printf("Disk information.\n");
     printf("Size of disk = %d GB\n", size);
 
-           jfs.ins_count);
-           printf("Total number of read instructions   = %16lld instructions\n",
-                  jfs.read_ins_count);
-           printf("Total number of write instructions  = %16lld instructions\n",
-                  jfs.write_ins_count);
-           printf("Total number of delete instructions = %16lld instructions\n",
-                  jfs.delete_ins_count);
-           printf("\n");
-           printf("Total read actual size      = %17lu MB\n",
-                  d->total_read_actual_size / MEGABYTE);
-           printf("Total read virtual size     = %17lu MB\n",
-                  d->total_read_virtual_size / MEGABYTE);
-           printf("Total write virtual size    = %17lu MB\n",
-                  d->total_write_virtual_size / MEGABYTE);
-           printf("Total write actual size     = %17lu MB\n",
-                  d->total_write_actual_size / MEGABYTE);
-           printf("Total delete virtual size   = %17lu MB\n",
-                  d->total_delete_write_virtual_size / MEGABYTE);
-           printf("Total delete actual size    = %17lu MB\n",
-                  d->total_delete_write_actual_size / MEGABYTE);
+    printf("Total number of read instructions   = %16lld instructions\n",
+           jfs.read_ins_count);
+    printf("Total number of write instructions  = %16lld instructions\n",
+           jfs.write_ins_count);
+    printf("Total number of delete instructions = %16lld instructions\n",
+           jfs.delete_ins_count);
+    printf("\n");
+    printf("Total read actual size      = %17lu MB\n",
+           d->total_read_actual_size / MEGABYTE);
+    printf("Total read virtual size     = %17lu MB\n",
+           d->total_read_virtual_size / MEGABYTE);
+    printf("Total write virtual size    = %17lu MB\n",
+           d->total_write_virtual_size / MEGABYTE);
+    printf("Total write actual size     = %17lu MB\n",
+           d->total_write_actual_size / MEGABYTE);
+    printf("Total delete virtual size   = %17lu MB\n",
+           d->total_delete_write_virtual_size / MEGABYTE);
+    printf("Total delete actual size    = %17lu MB\n",
+           d->total_delete_write_actual_size / MEGABYTE);
 
-           printf("-------------------------\n");
-           printf("Total access time           = %17lu ns\n",
-                  report->total_access_time);
-           printf("Total write time            = %17lu ns\n",
-                  report->total_write_time);
-           printf("Total read time             = %17lu ns\n",
-                  report->total_read_time);
-           printf("Total read virtual time     = %17lu ns\n",
-                  report->total_read_time);
-           printf("\n");
-           printf("Total write virtual size    = %17lu MB\n",
-                  report->total_write_virtual_size / MEGABYTE);
-           printf("Total write actual size     = %17lu MB\n",
-                  report->total_write_actual_size / MEGABYTE);
+    printf("-------------------------\n");
+    printf("Total access time           = %17lu ns\n",
+           report->total_access_time);
+    printf("Total write time            = %17lu ns\n",
+           report->total_write_time);
+    printf("Total read time             = %17lu ns\n", report->total_read_time);
+    printf("Total read virtual time     = %17lu ns\n", report->total_read_time);
+    printf("\n");
+    printf("Total write virtual size    = %17lu MB\n",
+           report->total_write_virtual_size / MEGABYTE);
+    printf("Total write actual size     = %17lu MB\n",
+           report->total_write_actual_size / MEGABYTE);
            report->total_delete_write_virtual_size / MEGABYTE);
     printf("Total delete actual size    = %17lu MB\n",
     end_jfs(jj);
