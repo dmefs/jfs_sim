@@ -1,5 +1,8 @@
 #include "command_table.h"
 
+ref_t *reference_table;
+
+
 int init_command_table(transaction_head_t *head, size_t num)
 {
     void *p;
@@ -39,17 +42,47 @@ void add_command_table(transaction_head_t *head, unsigned long lba, size_t n, un
     t->jarea_lba = jarea_lba;
     t->size = n;
     t->fid = fid;
+    t->valid = true;
+    add_reference_table(reference_table, lba, head->size);
     head->size++;
 }
 
 bool in_command_table(transaction_head_t *head,unsigned long lba,size_t n,unsigned long *jarea_lba, int fid)
 {
-    for (size_t i = 0; i < head->size; i++) {
-        transaction_t *t = &head->table[i];
-        if ((t->lba == lba) && (t->size = n) && (t->fid == fid)) {
-            *jarea_lba = t->jarea_lba;
-            return true;
-        }
+    ref_t *r = &reference_table[lba];
+    if (!r->valid)
+        return false;
+    transaction_t *t = &head->table[r->transaction_index];
+    if (!t->valid)
+        return false;
+    if ((t->fid == fid) && (t->lba <= lba) && ((t->lba + t->size) >= (lba + n))) {
+        *jarea_lba = t->jarea_lba;
+        return true;
     }
     return false;
+}
+
+int init_reference_table(ref_t **p, size_t n)
+{
+    if ((*p = calloc(n, sizeof(*reference_table))) == NULL) {
+        fprintf(stderr, "Error: fail to init reference table.\n");
+        exit(EXIT_FAILURE);
+    }
+    return 0;
+}
+
+void end_reference_table(ref_t *t)
+{
+    free(t);
+}
+
+void add_reference_table(ref_t *t, unsigned long lba, unsigned long index)
+{
+    t[lba].transaction_index = index;
+    t[lba].valid = true;
+}
+
+void invalid_reference_table(ref_t *t, unsigned long lba)
+{
+    t[lba].valid = false;
 }

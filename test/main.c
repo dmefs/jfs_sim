@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 
 void
 start_parsing(jfs_t* fs, char* file_name)
@@ -32,15 +31,19 @@ start_parsing(jfs_t* fs, char* file_name)
             p++;
         if (*p == '#')
             continue;
+        fs->ins_count++;
         if ((val = sscanf(p, "%c %d %lu %lu\n", &c, &fid, &lba, &n)) == 4) {
             switch (c) {
                 case 'R':
+                    fs->read_ins_count++;
                     fs->jfs_op->read(fs, lba, n, fid);
                     break;
                 case 'W':
+                    fs->write_ins_count++;
                     fs->jfs_op->write(fs, lba, n, fid);
                     break;
                 case 'D':
+                    fs->delete_ins_count++;
                     fs->jfs_op->delete (fs, lba, n, fid);
                     break;
                 default:
@@ -63,7 +66,7 @@ main(int argc, char** argv)
 {
     int size, opt, len;
     char input_file[MAX_LENS + 1];
-    time_t start_time, end_time; /* elapsed timers */
+    time_t start_time, end_time;
 
     opt = 0;
 
@@ -111,8 +114,13 @@ main(int argc, char** argv)
     printf("Time information:\n\n");
     printf("%f seconds total\n", elapsed);
 
+    double elapsed = difftime(end_time, start_time);
     printf("-------------------------\n");
-    printf("Disk information:\n\n");
+    printf("Time information:\n\n");
+    printf("%f seconds total\n", elapsed);
+
+    printf("-------------------------\n");
+    printf("Disk information.\n");
     printf("Size of disk = %d GB\n", size);
 
     printf("-------------------------\n");
@@ -121,46 +129,47 @@ main(int argc, char** argv)
            report->ins_count);
     printf("Total number of read instructions   = %16lu instructions\n",
            report->read_ins_count);
-    printf("Total number of write instructions  = %16lu instructions\n",
-           report->write_ins_count);
-    printf("Total size of read instructions   = %16lu MB\n",
-           report->read_ins_count * SECTOR_SIZE / MEGABYTE);
-    printf("Total size of write instructions  = %16lu MB\n",
-           report->write_ins_count * SECTOR_SIZE / MEGABYTE);
     printf("\n");
     printf("Disk information.\n");
     printf("Size of disk = %d GB\n", size);
 
-    printf("Total number of instructions        = %16lld instructions\n",
            jfs.ins_count);
-    printf("Total number of read instructions   = %16lld instructions\n",
-           jfs.read_ins_count);
-    printf("Total number of write instructions  = %16lld instructions\n",
-           jfs.write_ins_count);
-    printf("Total number of delete instructions = %16lld instructions\n",
-           jfs.delete_ins_count);
-    printf("\n");
+           printf("Total number of read instructions   = %16lld instructions\n",
+                  jfs.read_ins_count);
+           printf("Total number of write instructions  = %16lld instructions\n",
+                  jfs.write_ins_count);
+           printf("Total number of delete instructions = %16lld instructions\n",
+                  jfs.delete_ins_count);
+           printf("\n");
+           printf("Total read actual size      = %17lu MB\n",
+                  d->total_read_actual_size / MEGABYTE);
+           printf("Total read virtual size     = %17lu MB\n",
+                  d->total_read_virtual_size / MEGABYTE);
+           printf("Total write virtual size    = %17lu MB\n",
+                  d->total_write_virtual_size / MEGABYTE);
+           printf("Total write actual size     = %17lu MB\n",
+                  d->total_write_actual_size / MEGABYTE);
+           printf("Total delete virtual size   = %17lu MB\n",
+                  d->total_delete_write_virtual_size / MEGABYTE);
+           printf("Total delete actual size    = %17lu MB\n",
+                  d->total_delete_write_actual_size / MEGABYTE);
 
-    printf("-------------------------\n");
-    printf("Total access time           = %17lu ns\n",
-           report->total_access_time);
-    printf("Total write time            = %17lu ns\n",
-           report->total_write_time);
-    printf("Total read time             = %17lu ns\n", report->total_read_time);
-    printf("Total read virtual time     = %17lu ns\n", report->total_read_time);
-    printf("\n");
-    printf("Total read size             = %17lu MB\n",
-           report->total_read_actual_size / MEGABYTE);
-    printf("Total read virtual size     = %17lu MB\n",
-           report->total_read_virtual_size / MEGABYTE);
-    printf("Total write virtual size    = %17lu MB\n",
-           report->total_write_virtual_size / MEGABYTE);
-    printf("Total write actual size     = %17lu MB\n",
-           report->total_write_actual_size / MEGABYTE);
-    printf("Total delete virtual size   = %17lu MB\n",
+           printf("-------------------------\n");
+           printf("Total access time           = %17lu ns\n",
+                  report->total_access_time);
+           printf("Total write time            = %17lu ns\n",
+                  report->total_write_time);
+           printf("Total read time             = %17lu ns\n",
+                  report->total_read_time);
+           printf("Total read virtual time     = %17lu ns\n",
+                  report->total_read_time);
+           printf("\n");
+           printf("Total write virtual size    = %17lu MB\n",
+                  report->total_write_virtual_size / MEGABYTE);
+           printf("Total write actual size     = %17lu MB\n",
+                  report->total_write_actual_size / MEGABYTE);
            report->total_delete_write_virtual_size / MEGABYTE);
     printf("Total delete actual size    = %17lu MB\n",
-           report->total_delete_write_actual_size / MEGABYTE);
     end_jfs(jj);
 
     return 0;
