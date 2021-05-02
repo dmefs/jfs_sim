@@ -7,10 +7,11 @@ SRC_DIR=src
 SRC := $(wildcard $(SRC_DIR)/*.c)
 
 IMR_OBJS= IMRSimulator/src/lba.c IMRSimulator/src/pba.c IMRSimulator/src/batch.c IMRSimulator/src/chs.c IMRSimulator/src/record_op.c IMRSimulator/src/rw.c
+VG_OBJS = IMRSimulator/src/fid_table.c IMRSimulator/src/virtual_groups.c IMRSimulator/src/dump.c
 JFS_OBJS= src/command_table.c src/jfs.c
 
 CPPFLAGS=-std=c++11 -Wfatal-errors -Wall 
-IMRFLAGS=-DZALLOC_IMR -DTOP_BUFFER
+IMRFLAGS=-DVIRTUAL_GROUPS
 LDFLAGS= -lgtest -lpthread
 CFLAGS=-Wfatal-errors -Wall 
 
@@ -20,8 +21,11 @@ ut_main: dirs
 imr: $(OBJS) dirs
 	$(CC) $(CFLAGS) test/main.c -o bin/jfs $(JFS_OBJS) $(IMR_OBJS) -IIMRSimulator/src -Isrc -g
 
-test: imr
-	./bin/jfs -i instructions/10m_100 -s 2
+vg: $(OBJS) dirs
+	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS test/main.c -o bin/jfs $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) -IIMRSimulator/include -Isrc -g
+
+test: vg
+	./bin/jfs -i instructions/1m_1024 -s 2
 
 ut_test: ut_main
 	./bin/ut_main
