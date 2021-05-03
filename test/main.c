@@ -102,7 +102,6 @@ main(int argc, char** argv)
         printf("[OK] Init init_jfs\n");
     }
 
-    struct report* report = &jj->d->report;
     /* parse operations file */
     printf("Start parsing...\n");
     time(&start_time);
@@ -119,35 +118,31 @@ main(int argc, char** argv)
     printf("Disk information.\n");
     printf("Size of disk = %d GB\n", size);
 
+    struct report* report = &jj->d->report;
     printf("-------------------------\n");
-    printf("Transaction information:\n\n");
-    printf("Total number of instructions        = %16lu instructions\n",
-           report->ins_count);
-    printf("Total number of read instructions   = %16lu instructions\n",
-           report->read_ins_count);
-    printf("\n");
     printf("Disk information.\n");
     printf("Size of disk = %d GB\n", size);
-
+    printf("-------------------------\n");
+    printf("Transaction information:\n\n");
     printf("Total number of read instructions   = %16lld instructions\n",
            jfs.read_ins_count);
     printf("Total number of write instructions  = %16lld instructions\n",
            jfs.write_ins_count);
     printf("Total number of delete instructions = %16lld instructions\n",
            jfs.delete_ins_count);
-    printf("\n");
-    printf("Total read actual size      = %17lu MB\n",
-           d->total_read_actual_size / MEGABYTE);
-    printf("Total read virtual size     = %17lu MB\n",
-           d->total_read_virtual_size / MEGABYTE);
-    printf("Total write virtual size    = %17lu MB\n",
-           d->total_write_virtual_size / MEGABYTE);
-    printf("Total write actual size     = %17lu MB\n",
-           d->total_write_actual_size / MEGABYTE);
-    printf("Total delete virtual size   = %17lu MB\n",
-           d->total_delete_write_virtual_size / MEGABYTE);
-    printf("Total delete actual size    = %17lu MB\n",
-           d->total_delete_write_actual_size / MEGABYTE);
+
+#ifdef TOP_BUFFER
+    printf("-------------------------\n");
+    printf("Total write top buffer size = %17lu MB\n",
+           report->total_write_top_buffer_size / MEGABYTE);
+    printf("Total read scp size         = %17lu MB\n",
+           report->total_read_scp_size / MEGABYTE);
+    printf("Total scp count             = %17d times\n", report->scp_count);
+#endif
+#ifdef BLOCK_SWAP
+    printf("Total block swap count      = %17ld blocks\n",
+           report->current_block_swap_count);
+#endif
 
     printf("-------------------------\n");
     printf("Total access time           = %17lu ns\n",
@@ -157,12 +152,18 @@ main(int argc, char** argv)
     printf("Total read time             = %17lu ns\n", report->total_read_time);
     printf("Total read virtual time     = %17lu ns\n", report->total_read_time);
     printf("\n");
+    printf("Total read actual size      = %17lu MB\n",
+           report->total_read_actual_size / MEGABYTE);
+    printf("Total read virtual size     = %17lu MB\n",
+           report->total_read_virtual_size / MEGABYTE);
     printf("Total write virtual size    = %17lu MB\n",
            report->total_write_virtual_size / MEGABYTE);
     printf("Total write actual size     = %17lu MB\n",
            report->total_write_actual_size / MEGABYTE);
+    printf("Total delete virtual size   = %17lu MB\n",
            report->total_delete_write_virtual_size / MEGABYTE);
     printf("Total delete actual size    = %17lu MB\n",
+           report->total_delete_write_actual_size / MEGABYTE);
     end_jfs(jj);
 
     return 0;

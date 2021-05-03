@@ -29,7 +29,7 @@ init_jfs(int size)
         goto done_jarea;
     if (init_command_table(&jfs.head, jfs.jarea.max_jarea_num))
         goto done_command_table;
-    if (init_reference_table(&reference_table, jfs.d->max_block_num))
+    if (init_reference_table(&reference_table, jfs.d->report.max_block_num))
         goto done_reference_table;
     jfs.jfs_op = &jfs_ops;
 
@@ -140,10 +140,11 @@ jfs_read(jfs_t* fs, unsigned long lba, size_t n, int fid)
     if (in_command_table(&fs->head, lba, n, &jarea_lba, fid))
         return jarea_read(fs, jarea_lba, n, fid);
     else
-        return lba_read(fs->d, lba, n, fid);
+        return lba_read(fs->d, lba + fs->jarea.max_jarea_num, n, fid);
 }
 #endif
 
+#ifdef VIRTUAL_GROUPS
 void
 flush_command_table(transaction_head_t* head,
                     struct disk* d,
@@ -157,6 +158,23 @@ flush_command_table(transaction_head_t* head,
     }
     head->size = 0;
 }
+#else
+void
+flush_command_table(transaction_head_t* head,
+                    struct disk* d,
+                    unsigned long offset)
+{
+    for (size_t i = 0; i < head->size; i++) {
+        transaction_t* t = &head->table[i];
+        if (t->valid) {
+            d->d_op->read(d, t->jarea_lba, t->size, t->fid);
+            d->d_op->write(d, t->lba + offset, t->size, t->fid);
+            invalid_reference_table(reference_table, t->lba);
+        }
+    }
+    head->size = 0;
+}
+#endif
 
 void
 delete_fid_command_table(transaction_head_t* head, int fid)
@@ -174,22 +192,6 @@ jfs_delete(jfs_t* fs, unsigned long lba, size_t n, int fid)
 {
     delete_fid_command_table(&fs->head, fid);
     return fs->d->d_op->remove(fs->d, lba, n, fid);
-}
-
-void
-flush_command_table(transaction_head_t* head,
-                    struct disk* d,
-                    unsigned long offset)
-{
-    for (size_t i = 0; i < head->size; i++) {
-        transaction_t* t = &head->table[i];
-        if (t->valid) {
-            d->d_op->read(d, t->jarea_lba, t->size, t->fid);
-            d->d_op->write(d, t->lba + offset, t->size, t->fid);
-            invalid_reference_table(reference_table, t->lba);
-        }
-    }
-    head->size = 0;
 }
 
 void
