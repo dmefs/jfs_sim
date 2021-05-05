@@ -143,6 +143,10 @@ main(int argc, char** argv)
     printf("Total block swap count      = %17ld blocks\n",
            report->current_block_swap_count);
 #endif
+#ifdef VIRTUAL_GROUPS
+    printf("Total dual swap count      = %17ld blocks\n",
+           report->dual_swap_count);
+#endif
 
     printf("-------------------------\n");
     printf("Total access time           = %17lu ns\n",
