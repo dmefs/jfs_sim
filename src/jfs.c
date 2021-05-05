@@ -106,15 +106,6 @@ jfs_check_out(jfs_t* jfs)
     flush_jarea(&jfs->jarea);
 }
 
-#ifdef VIRTUAL_GROUPS
-int
-jfs_write(jfs_t* fs, unsigned long lba, size_t n, int fid)
-{
-    if (jarea_is_full(&fs->jarea, n))
-        jfs_check_out(fs);
-    return fs->d->d_op->journaling_write(fs->d, lba, n, fid);
-}
-#else
 int
 jfs_write(jfs_t* fs, unsigned long lba, size_t n, int fid)
 {
@@ -124,15 +115,7 @@ jfs_write(jfs_t* fs, unsigned long lba, size_t n, int fid)
     add_command_table(&fs->head, lba, n, jarea_lba, fid);
     return jarea_write(fs, jarea_lba, n, fid);
 }
-#endif
 
-#ifdef VIRTUAL_GROUPS
-int
-jfs_read(jfs_t* fs, unsigned long lba, size_t n, int fid)
-{
-    return fs->d->d_op->read(fs->d, lba, n, fid);
-}
-#else
 int
 jfs_read(jfs_t* fs, unsigned long lba, size_t n, int fid)
 {
@@ -142,23 +125,7 @@ jfs_read(jfs_t* fs, unsigned long lba, size_t n, int fid)
     else
         return lba_read(fs->d, lba + fs->jarea.max_jarea_num, n, fid);
 }
-#endif
 
-#ifdef VIRTUAL_GROUPS
-void
-flush_command_table(transaction_head_t* head,
-                    struct disk* d,
-                    unsigned long offset)
-{
-    for (size_t i = 0; i < head->size; i++) {
-        transaction_t* t = &head->table[i];
-        d->d_op->read(d, t->lba, t->size, t->fid);
-        d->d_op->invalid(d, t->lba, t->size, t->fid);
-        d->d_op->write(d, t->lba, t->size, t->fid);
-    }
-    head->size = 0;
-}
-#else
 void
 flush_command_table(transaction_head_t* head,
                     struct disk* d,
@@ -169,12 +136,16 @@ flush_command_table(transaction_head_t* head,
         if (t->valid) {
             d->d_op->read(d, t->jarea_lba, t->size, t->fid);
             d->d_op->write(d, t->lba + offset, t->size, t->fid);
-            invalid_reference_table(reference_table, t->lba);
+#ifdef VIRTUAL_GROUPS
+            d->d_op->invalid(d, t->jarea_lba, t->size, t->fid);
+#else
+            d->d_op->write(d, t->jarea_lba, t->size, t->fid);
+#endif
         }
+        invalid_reference_table(reference_table, t->lba);
     }
     head->size = 0;
 }
-#endif
 
 void
 delete_fid_command_table(transaction_head_t* head, int fid)
@@ -183,6 +154,7 @@ delete_fid_command_table(transaction_head_t* head, int fid)
         transaction_t* t = &head->table[i];
         if (t->fid == fid) {
             t->valid = false;
+            invalid_reference_table(reference_table, t->lba);
         }
     }
 }
