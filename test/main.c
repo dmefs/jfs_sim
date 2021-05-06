@@ -114,10 +114,6 @@ main(int argc, char** argv)
     printf("Time information:\n\n");
     printf("%f seconds total\n", elapsed);
 
-    printf("-------------------------\n");
-    printf("Disk information.\n");
-    printf("Size of disk = %d GB\n", size);
-
     struct report* report = &jj->d->report;
     printf("-------------------------\n");
     printf("Disk information.\n");
