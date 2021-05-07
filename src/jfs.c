@@ -136,11 +136,7 @@ flush_command_table(transaction_head_t* head,
         if (t->valid) {
             d->d_op->read(d, t->jarea_lba, t->size, t->fid);
             d->d_op->write(d, t->lba + offset, t->size, t->fid);
-#ifdef VIRTUAL_GROUPS
             d->d_op->invalid(d, t->jarea_lba, t->size, t->fid);
-#else
-            d->d_op->write(d, t->jarea_lba, t->size, t->fid);
-#endif
         }
         invalid_reference_table(reference_table, t->lba);
     }
