@@ -151,6 +151,11 @@ main(int argc, char** argv)
            report->total_write_time);
     printf("Total read time             = %17lu ns\n", report->total_read_time);
     printf("Total read virtual time     = %17lu ns\n", report->total_read_time);
+    printf("Total delete write time     = %17lu ns\n",
+           report->total_delete_write_time);
+    printf("Total delete read time      = %17lu ns\n",
+           report->total_delete_read_time);
+
     printf("\n");
     printf("Total read actual size      = %17lu MB\n",
            report->total_read_actual_size / MEGABYTE);
