@@ -32,22 +32,6 @@ top_buffer: $(OBJS) $(TOP_BUFFER_OBJS)
 vg: $(OBJS) dirs
 	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS test/main.c -o bin/jfs_vg $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
 
-title: test/title.c
-	$(CC) $< -o bin/title 
-
-report: title native top_buffer vg
-	./bin/title bin/size.log bin/time.log bin/feature.log
-	# ./bin/jfs_native -i instructions/$(TRACES) -s 2 -l
-	# ./bin/jfs_topbuffer -i instructions/$(TRACES) -s 2 -l
-	./bin/jfs_vg -i instructions/$(TRACES) -s 2 -l
-
-TRACES= 1m_1844_333
-test: native zalloc top_buffer vg
-	./bin/jfs_native -i instructions/$(TRACES) -s 2
-	./bin/jfs_zalloc -i instructions/$(TRACES) -s 2
-	./bin/jfs_topbuffer -i instructions/$(TRACES) -s 2
-	./bin/jfs_vg -i instructions/$(TRACES) -s 2
-
 test1g: top_buffer
 	./bin/jfs -i instructions/1m_1024_333 -s 2
 
