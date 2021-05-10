@@ -20,3 +20,5 @@ do
 done
 mv ./bin/size.log ./bin/90%size.log
 mv ./bin/time.log ./bin/90%time.log
+
+python3 ./test/report.py
