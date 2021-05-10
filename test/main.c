@@ -8,6 +8,11 @@
 #include <time.h>
 #include <unistd.h>
 
+const char* size_fname = "bin/size.log";
+const char* time_fname = "bin/time.log";
+const char* feature_fname = "bin/feature.log";
+bool log_mode = false;
+
 void
 start_parsing(jfs_t* fs, char* file_name)
 {
@@ -62,6 +67,58 @@ start_parsing(jfs_t* fs, char* file_name)
     fclose(stream);
 }
 
+FILE *fsize, *ftime, *ffeature;
+int
+open_log_files()
+{
+    if (!(fsize = fopen(size_fname, "a"))) {
+        printf("Couldn't open file : %s\n", size_fname);
+        return EXIT_FAILURE;
+    }
+    if (!(ftime = fopen(time_fname, "a"))) {
+        printf("Couldn't open file : %s\n", time_fname);
+        return EXIT_FAILURE;
+    }
+    if (!(ffeature = fopen(feature_fname, "a"))) {
+        printf("Couldn't open file : %s\n", feature_fname);
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
+
+void
+log_info(struct report* re)
+{
+    char s[200];
+    int n = 0;
+    if (EXIT_SUCCESS != open_log_files()) {
+        fprintf(stderr, "Couldn't open log files.\n");
+        exit(EXIT_FAILURE);
+    }
+    n = sprintf(s,
+                "\n%lu,%lu,%lu,%lu,%lu,%lu,%lu",
+                re->total_read_actual_size / MEGABYTE,
+                re->total_read_virtual_size / MEGABYTE,
+                re->total_write_actual_size / MEGABYTE,
+                re->total_write_virtual_size / MEGABYTE,
+                re->total_delete_write_actual_size / MEGABYTE,
+                re->total_delete_write_virtual_size / MEGABYTE,
+                re->total_delete_read_virtual_size / MEGABYTE);
+    fwrite(s, 1, n, fsize);
+    n = sprintf(s,
+                "\n%lu,%lu,%lu,%lu,%lu,%lu",
+                re->total_access_time,
+                re->total_write_time,
+                re->total_read_time,
+                re->total_read_virtual_time,
+                re->total_delete_write_time,
+                re->total_delete_read_time);
+    fwrite(s, 1, n, ftime);
+    fclose(fsize);
+    fclose(ftime);
+    fclose(ffeature);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -72,7 +129,7 @@ main(int argc, char** argv)
     opt = 0;
 
     /* parse arguments */
-    while ((opt = getopt(argc, argv, "s:i:")) != -1) {
+    while ((opt = getopt(argc, argv, "s:i:l")) != -1) {
         switch (opt) {
             case 's':
                 size = atoi(optarg);
@@ -83,6 +140,9 @@ main(int argc, char** argv)
                     len = MAX_LENS;
                 strncpy(input_file, optarg, len);
                 input_file[len] = '\0';
+                break;
+            case 'l':
+                log_mode = true;
                 break;
             default:
                 fprintf(stderr,
@@ -115,6 +175,8 @@ main(int argc, char** argv)
     printf("%f seconds total\n", elapsed);
 
     struct report* report = &jj->d->report;
+    if (log_mode)
+        log_info(report);
     printf("-------------------------\n");
     printf("Disk information.\n");
     printf("Size of disk = %d GB\n", size);
