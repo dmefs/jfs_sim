@@ -96,7 +96,7 @@ log_info(struct report* re)
         exit(EXIT_FAILURE);
     }
     n = sprintf(s,
-                "\n%lu,%lu,%lu,%lu,%lu,%lu,%lu",
+                "%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",
                 re->total_read_actual_size / MEGABYTE,
                 re->total_read_virtual_size / MEGABYTE,
                 re->total_write_actual_size / MEGABYTE,
@@ -106,7 +106,7 @@ log_info(struct report* re)
                 re->total_delete_read_virtual_size / MEGABYTE);
     fwrite(s, 1, n, fsize);
     n = sprintf(s,
-                "\n%lu,%lu,%lu,%lu,%lu,%lu",
+                "%lu,%lu,%lu,%lu,%lu,%lu\n",
                 re->total_access_time,
                 re->total_write_time,
                 re->total_read_time,
