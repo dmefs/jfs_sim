@@ -17,9 +17,9 @@ typedef struct _jfs_operations jfs_operations;
 
 struct _jfs_operations
 {
-    int (*read)(jfs_t* fs, unsigned long lba, size_t n, int fid);
-    int (*write)(jfs_t* fs, unsigned long lba, size_t n, int fid);
-    int (*delete)(jfs_t* fs, unsigned long lba, size_t n, int fid);
+    int (*read)(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid);
+    int (*write)(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid);
+    int (*delete)(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid);
 };
 
 struct _jfs_t
@@ -46,16 +46,16 @@ init_jarea(jarea_t* jarea, unsigned long max_block_size);
 void
 end_jarea(jarea_t* jarea);
 int
-jarea_write(jfs_t* fs, unsigned long lba, size_t n, int fid);
+jarea_write(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid);
 int
-jarea_read(jfs_t* fs, unsigned long lba, size_t n, int fid);
+jarea_read(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid);
 
 int
-jfs_write(jfs_t* fs, unsigned long lba, size_t n, int fid);
+jfs_write(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid);
 int
-jfs_read(jfs_t* fs, unsigned long lba, size_t n, int fid);
+jfs_read(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid);
 int
-jfs_delete(jfs_t* fs, unsigned long lba, size_t n, int fid);
+jfs_delete(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid);
 void
 jfs_check_out(jfs_t* jfs);
 void

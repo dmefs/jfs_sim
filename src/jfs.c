@@ -72,14 +72,14 @@ end_jarea(jarea_t* jarea)
 }
 
 int
-jarea_write(jfs_t* fs, unsigned long lba, size_t n, int fid)
+jarea_write(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid)
 {
     fs->jarea.size += n;
     return fs->d->d_op->journaling_write(fs->d, lba, n, fid);
 }
 
 int
-jarea_read(jfs_t* fs, unsigned long lba, size_t n, int fid)
+jarea_read(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid)
 {
     if ((lba + n) > fs->jarea.max_jarea_num) {
         fprintf(
@@ -107,7 +107,7 @@ jfs_check_out(jfs_t* jfs)
 }
 
 int
-jfs_write(jfs_t* fs, unsigned long lba, size_t n, int fid)
+jfs_write(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid)
 {
     if (jarea_is_full(&fs->jarea, n))
         jfs_check_out(fs);
@@ -117,7 +117,7 @@ jfs_write(jfs_t* fs, unsigned long lba, size_t n, int fid)
 }
 
 int
-jfs_read(jfs_t* fs, unsigned long lba, size_t n, int fid)
+jfs_read(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid)
 {
     unsigned long jarea_lba = 0;
     if (in_command_table(&fs->head, lba, n, &jarea_lba, fid))
@@ -137,26 +137,27 @@ flush_command_table(transaction_head_t* head,
             d->d_op->read(d, t->jarea_lba, t->size, t->fid);
             d->d_op->write(d, t->lba + offset, t->size, t->fid);
             d->d_op->invalid(d, t->jarea_lba, t->size, t->fid);
+            invalid_reference_table(reference_table, t->lba);
         }
-        invalid_reference_table(reference_table, t->lba);
     }
     head->size = 0;
 }
 
 void
-delete_fid_command_table(transaction_head_t* head, int fid)
+delete_fid_command_table(transaction_head_t* head, unsigned long fid)
 {
     for (size_t i = 0; i < head->size; i++) {
         transaction_t* t = &head->table[i];
         if (t->fid == fid) {
             t->valid = false;
-            invalid_reference_table(reference_table, t->lba);
+            for (size_t j = 0; j < t->size; j++)
+                invalid_reference_table(reference_table, t->lba + j);
         }
     }
 }
 
 int
-jfs_delete(jfs_t* fs, unsigned long lba, size_t n, int fid)
+jfs_delete(jfs_t* fs, unsigned long lba, size_t n, unsigned long fid)
 {
     delete_fid_command_table(&fs->head, fid);
     return fs->d->d_op->remove(fs->d, lba, n, fid);

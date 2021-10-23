@@ -12,25 +12,98 @@ const char* size_fname = "bin/size.log";
 const char* time_fname = "bin/time.log";
 const char* feature_fname = "bin/feature.log";
 bool log_mode = false;
+bool is_csv_flag = false;
 
 void
-start_parsing(jfs_t* fs, char* file_name)
+parsing_csv(jfs_t* fs, FILE* stream)
 {
-    FILE* stream;
+    unsigned long lba, n, val;
+    char* line = NULL;
+    ssize_t nread;
+    size_t len;
+    unsigned long fid, remain, remainder, num_bytes, left, num_traces, percent,
+      ten_percent;
+    unsigned long long bytes;
+    int c, count;
+    num_traces = 1000000;
+    percent = num_traces / 100;
+    ten_percent = num_traces / 10;
+    while ((num_traces--) && ((nread = getline(&line, &len, stream)) != -1)) {
+        char* p = line;
+        while (*p == ' ')
+            p++;
+        if (*p == '#')
+            continue;
+        if ((val = sscanf(
+               p, "%d,%lu,%llu,%lu\n", &c, &fid, &bytes, &num_bytes)) == 4) {
+            fs->ins_count++;
+            lba = bytes / SECTOR_SIZE;
+            remainder = bytes % SECTOR_SIZE;
+            remain = (remainder == 0 ? 0 : SECTOR_SIZE - remainder);
+            n = 0;
+            if (num_bytes == 0) {
+                n = 0;
+            } else if (remain < num_bytes) {
+                n = !!remain;
+                left = num_bytes - remain;
+                n += (left / SECTOR_SIZE) + !!(left % SECTOR_SIZE);
+            } else {
+                n = 1;
+            }
+            switch (c) {
+                case 1:
+                    fs->read_ins_count++;
+                    fs->jfs_op->read(fs, lba, n, fid);
+                    break;
+                case 2:
+                    fs->write_ins_count++;
+                    count = fs->jfs_op->write(fs, lba, n, fid);
+                    if (count != n) {
+                        fprintf(stderr,
+                                "Error: size of input != size of output while "
+                                "writing\n");
+                        exit(EXIT_FAILURE);
+                    }
+                    break;
+                case 3:
+                    fs->delete_ins_count++;
+                    fs->jfs_op->delete (fs, lba, n, fid);
+                    break;
+                default:
+                    fprintf(stderr,
+                            "ERROR: parsing instructions failed. Unrecongnized "
+                            "mode. mode: %d\n",
+                            c);
+                    break;
+            }
+        } else {
+            fprintf(
+              stderr,
+              "ERROR: parsing instructions failed. Unrecongnized format.\n");
+            exit(EXIT_FAILURE);
+        }
+        if (!(num_traces % percent)) {
+            putchar('#');
+            fflush(stdout);
+        }
+        if (!(num_traces % ten_percent)) {
+            putchar('\n');
+            fflush(stdout);
+        }
+    }
+    free(line);
+}
+
+void
+parsing_postmark(jfs_t* fs, FILE* stream)
+{
     unsigned long lba, n, val;
     char *line, c;
     ssize_t nread;
     size_t len;
-    int fid = 0;
-
+    unsigned long fid;
     line = NULL;
-    len = 0;
 
-    stream = fopen(file_name, "r");
-    if (!stream) {
-        fprintf(stderr, "ERROR: open file failed. %s\n", strerror(errno));
-        return;
-    }
     while ((nread = getline(&line, &len, stream)) != -1) {
         char* p = line;
         while (*p == ' ')
@@ -38,7 +111,7 @@ start_parsing(jfs_t* fs, char* file_name)
         if (*p == '#')
             continue;
         fs->ins_count++;
-        if ((val = sscanf(p, "%c %d %lu %lu\n", &c, &fid, &lba, &n)) == 4) {
+        if ((val = sscanf(p, "%c %lu %lu %lu\n", &c, &fid, &lba, &n)) == 4) {
             switch (c) {
                 case 'R':
                     fs->read_ins_count++;
@@ -62,8 +135,24 @@ start_parsing(jfs_t* fs, char* file_name)
             exit(EXIT_FAILURE);
         }
     }
-    jfs_check_out(fs);
     free(line);
+}
+
+void
+start_parsing(jfs_t* fs, char* file_name)
+{
+    FILE* stream;
+
+    stream = fopen(file_name, "r");
+    if (!stream) {
+        fprintf(stderr, "ERROR: open file failed. %s\n", strerror(errno));
+        return;
+    }
+    if (is_csv_flag)
+        parsing_csv(fs, stream);
+    else
+        parsing_postmark(fs, stream);
+    jfs_check_out(fs);
     fclose(stream);
 }
 
@@ -129,8 +218,11 @@ main(int argc, char** argv)
     opt = 0;
 
     /* parse arguments */
-    while ((opt = getopt(argc, argv, "s:i:l")) != -1) {
+    while ((opt = getopt(argc, argv, "cs:i:l")) != -1) {
         switch (opt) {
+            case 'c':
+                is_csv_flag = true;
+                break;
             case 's':
                 size = atoi(optarg);
                 break;
@@ -188,6 +280,10 @@ main(int argc, char** argv)
            jfs.write_ins_count);
     printf("Total number of delete instructions = %16lld instructions\n",
            jfs.delete_ins_count);
+    printf("Total number of invalid read        = %16lu blocks\n",
+           report->num_invalid_read);
+    printf("Total number of invalid write       = %16lu blocks\n",
+           report->num_invalid_write);
 
 #ifdef TOP_BUFFER
     printf("-------------------------\n");

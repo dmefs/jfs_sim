@@ -8,35 +8,49 @@ SRC := $(wildcard $(SRC_DIR)/*.c)
 
 IMR_OBJS= IMRSimulator/src/lba.c IMRSimulator/src/pba.c IMRSimulator/src/batch.c IMRSimulator/src/chs.c IMRSimulator/src/record_op.c IMRSimulator/src/rw.c
 TOP_BUFFER_OBJS= IMRSimulator/src/top_buffer.c IMRSimulator/src/scp.c
+BLOCK_SWAP_OBJS= IMRSimulator/src/block_swap.c
 VG_OBJS = IMRSimulator/src/fid_table.c IMRSimulator/src/virtual_groups.c IMRSimulator/src/dump.c
 JFS_OBJS= src/command_table.c src/jfs.c
 
-CPPFLAGS=-std=c++11 -Wfatal-errors -Wall -g
+CPPFLAGS=-std=c++11 -Wfatal-errors -Wall
 LDFLAGS= -lgtest -lpthread
-CFLAGS=-Wfatal-errors -Wall -g
+CFLAGS=-Wfatal-errors -Wall
 INCLUDE_FLAGS=-IIMRSimulator/include -Isrc
 IMR_FLAGS=-DJFS
 
+all: native zalloc topbuffer blockswap vg
 ut_main: dirs
 	$(CXX) $(CPPFLAGS) test/ut_main.cpp $(SRC) $(IMRS) -o bin/ut_main $(LDFLAGS)
 
 native: $(OBJS) dirs
-	$(CC) $(CFLAGS) -DNATIVE test/main.c -o bin/jfs_native $(JFS_OBJS) $(IMR_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
+	$(CC) $(CFLAGS) -DNATIVE test/main.c -o bin/native $(JFS_OBJS) $(IMR_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
 
 zalloc: $(OBJS) dirs
-	$(CC) $(CFLAGS) $(INCLUDE_FLAGS) -DZALLOC test/main.c -o bin/jfs_zalloc $(OBJS) $(JFS_OBJS) $(IMR_OBJS) $(IMR_FLAGS)
+	$(CC) $(CFLAGS) $(INCLUDE_FLAGS) -DZALLOC test/main.c -o bin/zalloc $(OBJS) $(JFS_OBJS) $(IMR_OBJS) $(IMR_FLAGS)
 
-top_buffer: $(OBJS) $(TOP_BUFFER_OBJS)
-	$(CC) $(CFLAGS) $(INCLUDE_FLAGS) -DTOP_BUFFER test/main.c -o bin/jfs_topbuffer $(JFS_OBJS) $(IMR_OBJS) $(OBJS) $(TOP_BUFFER_OBJS) $(IMR_FLAGS)
+topbuffer: $(OBJS) $(TOP_BUFFER_OBJS)
+	$(CC) $(CFLAGS) $(INCLUDE_FLAGS) -DTOP_BUFFER test/main.c -o bin/topbuffer $(JFS_OBJS) $(IMR_OBJS) $(OBJS) $(TOP_BUFFER_OBJS) $(IMR_FLAGS)
 
-vg: $(OBJS) dirs
-	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS test/main.c -o bin/jfs_vg $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
+blockswap: $(OBJS) $(TOP_BUFFER_OBJS) $(BLOCK_SWAP_OBJS)
+	$(CC) $(CFLAGS) $(INCLUDE_FLAGS) -DBLOCK_SWAP test/main.c -o bin/blockswap $(JFS_OBJS) $(IMR_OBJS) $(OBJS) $(TOP_BUFFER_OBJS) $(BLOCK_SWAP_OBJS) $(IMR_FLAGS)
+
+vg: $(OBJS) dirs $(OBJS) $(VG_OBJS)
+	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS test/main.c -o bin/vg $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
 
 test1g: top_buffer
 	./bin/jfs -i instructions/1m_1024_333 -s 2
 
 test100g: imr
 	./bin/jfs -i instructions/1g_100 -s 110
+
+SIZE=2
+TRACE=1m_1024_333
+testall: native zalloc topbuffer blockswap vg
+	./bin/native -s $(SIZE) -i instructions/$(TRACE)
+	./bin/zalloc -s $(SIZE) -i instructions/$(TRACE)
+	./bin/topbuffer -s $(SIZE) -i instructions/$(TRACE)
+	./bin/blockswap -s $(SIZE) -i instructions/$(TRACE)
+	./bin/vg -s $(SIZE) -i instructions/$(TRACE)
 
 ut_test: ut_main
 	./bin/ut_main
