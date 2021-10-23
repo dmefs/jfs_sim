@@ -1,6 +1,6 @@
 # log 50% trace
 make native zalloc top_buffer vg
-JJFS=('jfs_native' 'jfs_zalloc' 'jfs_topbuffer' 'jfs_vg')
+JJFS=('native' 'zalloc' 'topbuffer' 'vg')
 rm ./bin/*.log
 for exe in "${JJFS[@]}"
 do
