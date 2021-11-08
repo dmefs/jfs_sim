@@ -1,41 +1,43 @@
-#include "jfs.h"
-#include "lba.h"
-#include "pba.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include "jfs.h"
+#include "lba.h"
+#include "pba.h"
 
-const char* size_fname = "bin/size.log";
-const char* time_fname = "bin/time.log";
-const char* feature_fname = "bin/feature.log";
+const char *size_fname = "bin/size.log";
+const char *time_fname = "bin/time.log";
+const char *feature_fname = "bin/feature.log";
 bool log_mode = false;
 bool is_csv_flag = false;
+#ifdef VIRTUAL_GROUPS
+extern unsigned long granularity;
+#endif
 
-void
-parsing_csv(jfs_t* fs, FILE* stream)
+void parsing_csv(jfs_t *fs, FILE *stream)
 {
     unsigned long lba, n, val;
-    char* line = NULL;
+    char *line = NULL;
     ssize_t nread;
     size_t len;
     unsigned long fid, remain, remainder, num_bytes, left, num_traces, percent,
-      ten_percent;
+        ten_percent;
     unsigned long long bytes;
-    int c, count;
-    num_traces = 1000000;
+    int c;
+    num_traces = 4500000;
     percent = num_traces / 100;
     ten_percent = num_traces / 10;
     while ((num_traces--) && ((nread = getline(&line, &len, stream)) != -1)) {
-        char* p = line;
+        char *p = line;
         while (*p == ' ')
             p++;
         if (*p == '#')
             continue;
-        if ((val = sscanf(
-               p, "%d,%lu,%llu,%lu\n", &c, &fid, &bytes, &num_bytes)) == 4) {
+        if ((val = sscanf(p, "%d,%lu,%llu,%lu\n", &c, &fid, &bytes,
+                          &num_bytes)) == 4) {
             fs->ins_count++;
             lba = bytes / SECTOR_SIZE;
             remainder = bytes % SECTOR_SIZE;
@@ -51,35 +53,29 @@ parsing_csv(jfs_t* fs, FILE* stream)
                 n = 1;
             }
             switch (c) {
-                case 1:
-                    fs->read_ins_count++;
-                    fs->jfs_op->read(fs, lba, n, fid);
-                    break;
-                case 2:
-                    fs->write_ins_count++;
-                    count = fs->jfs_op->write(fs, lba, n, fid);
-                    if (count != n) {
-                        fprintf(stderr,
-                                "Error: size of input != size of output while "
-                                "writing\n");
-                        exit(EXIT_FAILURE);
-                    }
-                    break;
-                case 3:
-                    fs->delete_ins_count++;
-                    fs->jfs_op->delete (fs, lba, n, fid);
-                    break;
-                default:
-                    fprintf(stderr,
-                            "ERROR: parsing instructions failed. Unrecongnized "
-                            "mode. mode: %d\n",
-                            c);
-                    break;
+            case 1:
+                fs->read_ins_count++;
+                fs->jfs_op->read(fs, lba, n, fid);
+                break;
+            case 2:
+                fs->write_ins_count++;
+                fs->jfs_op->write(fs, lba, n, fid);
+                break;
+            case 3:
+                fs->delete_ins_count++;
+                fs->jfs_op->delete (fs, lba, n, fid);
+                break;
+            default:
+                fprintf(stderr,
+                        "ERROR: parsing instructions failed. Unrecongnized "
+                        "mode. mode: %d\n",
+                        c);
+                break;
             }
         } else {
             fprintf(
-              stderr,
-              "ERROR: parsing instructions failed. Unrecongnized format.\n");
+                stderr,
+                "ERROR: parsing instructions failed. Unrecongnized format.\n");
             exit(EXIT_FAILURE);
         }
         if (!(num_traces % percent)) {
@@ -94,54 +90,53 @@ parsing_csv(jfs_t* fs, FILE* stream)
     free(line);
 }
 
-void
-parsing_postmark(jfs_t* fs, FILE* stream)
+void parsing_postmark(jfs_t *fs, FILE *stream)
 {
     unsigned long lba, n, val;
-    char *line, c;
+    char *line;
+    int c;
     ssize_t nread;
     size_t len;
     unsigned long fid;
     line = NULL;
 
     while ((nread = getline(&line, &len, stream)) != -1) {
-        char* p = line;
+        char *p = line;
         while (*p == ' ')
             p++;
         if (*p == '#')
             continue;
         fs->ins_count++;
-        if ((val = sscanf(p, "%c %lu %lu %lu\n", &c, &fid, &lba, &n)) == 4) {
+        if ((val = sscanf(p, "%d,%lu,%lu,%lu\n", &c, &fid, &lba, &n)) == 4) {
             switch (c) {
-                case 'R':
-                    fs->read_ins_count++;
-                    fs->jfs_op->read(fs, lba, n, fid);
-                    break;
-                case 'W':
-                    fs->write_ins_count++;
-                    fs->jfs_op->write(fs, lba, n, fid);
-                    break;
-                case 'D':
-                    fs->delete_ins_count++;
-                    fs->jfs_op->delete (fs, lba, n, fid);
-                    break;
-                default:
-                    break;
+            case 1:
+                fs->read_ins_count++;
+                fs->jfs_op->read(fs, lba, n, fid);
+                break;
+            case 2:
+                fs->write_ins_count++;
+                fs->jfs_op->write(fs, lba, n, fid);
+                break;
+            case 3:
+                fs->delete_ins_count++;
+                fs->jfs_op->delete (fs, lba, n, fid);
+                break;
+            default:
+                break;
             }
         } else {
             fprintf(
-              stderr,
-              "ERROR: parsing instructions failed. Unrecongnized format.\n");
+                stderr,
+                "ERROR: parsing instructions failed. Unrecongnized format.\n");
             exit(EXIT_FAILURE);
         }
     }
     free(line);
 }
 
-void
-start_parsing(jfs_t* fs, char* file_name)
+void start_parsing(jfs_t *fs, char *file_name)
 {
-    FILE* stream;
+    FILE *stream;
 
     stream = fopen(file_name, "r");
     if (!stream) {
@@ -157,8 +152,7 @@ start_parsing(jfs_t* fs, char* file_name)
 }
 
 FILE *fsize, *ftime, *ffeature;
-int
-open_log_files()
+int open_log_files()
 {
     if (!(fsize = fopen(size_fname, "a"))) {
         printf("Couldn't open file : %s\n", size_fname);
@@ -175,8 +169,7 @@ open_log_files()
     return EXIT_SUCCESS;
 }
 
-void
-log_info(struct report* re)
+void log_info(struct report *re)
 {
     char s[200];
     int n = 0;
@@ -184,8 +177,7 @@ log_info(struct report* re)
         fprintf(stderr, "Couldn't open log files.\n");
         exit(EXIT_FAILURE);
     }
-    n = sprintf(s,
-                "%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",
+    n = sprintf(s, "%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",
                 re->total_read_actual_size / MEGABYTE,
                 re->total_read_virtual_size / MEGABYTE,
                 re->total_write_actual_size / MEGABYTE,
@@ -194,13 +186,9 @@ log_info(struct report* re)
                 re->total_delete_write_virtual_size / MEGABYTE,
                 re->total_delete_read_virtual_size / MEGABYTE);
     fwrite(s, 1, n, fsize);
-    n = sprintf(s,
-                "%lu,%lu,%lu,%lu,%lu,%lu\n",
-                re->total_access_time,
-                re->total_write_time,
-                re->total_read_time,
-                re->total_read_virtual_time,
-                re->total_delete_write_time,
+    n = sprintf(s, "%lu,%lu,%lu,%lu,%lu,%lu\n", re->total_access_time,
+                re->total_write_time, re->total_read_time,
+                re->total_read_virtual_time, re->total_delete_write_time,
                 re->total_delete_read_time);
     fwrite(s, 1, n, ftime);
     fclose(fsize);
@@ -208,8 +196,7 @@ log_info(struct report* re)
     fclose(ffeature);
 }
 
-int
-main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     int size, opt, len;
     char input_file[MAX_LENS + 1];
@@ -218,35 +205,39 @@ main(int argc, char** argv)
     opt = 0;
 
     /* parse arguments */
-    while ((opt = getopt(argc, argv, "cs:i:l")) != -1) {
+    while ((opt = getopt(argc, argv, "cls:i:g:")) != -1) {
         switch (opt) {
-            case 'c':
-                is_csv_flag = true;
-                break;
-            case 's':
-                size = atoi(optarg);
-                break;
-            case 'i':
-                len = strlen(optarg);
-                if (len > MAX_LENS)
-                    len = MAX_LENS;
-                strncpy(input_file, optarg, len);
-                input_file[len] = '\0';
-                break;
-            case 'l':
-                log_mode = true;
-                break;
-            default:
-                fprintf(stderr,
-                        "Usage: %s [-s size(GB)] [-i input_file_name]\n",
-                        argv[0]);
-                exit(EXIT_FAILURE);
-                break;
+        case 'c':
+            is_csv_flag = true;
+            break;
+        case 's':
+            size = atoi(optarg);
+            break;
+        case 'i':
+            len = strlen(optarg);
+            if (len > MAX_LENS)
+                len = MAX_LENS;
+            strncpy(input_file, optarg, len);
+            input_file[len] = '\0';
+            break;
+        case 'l':
+            log_mode = true;
+            break;
+#ifdef VIRTUAL_GROUPS
+        case 'g':
+            granularity = atoi(optarg);
+            break;
+#endif
+        default:
+            fprintf(stderr, "Usage: %s [-s size(GB)] [-i input_file_name]\n",
+                    argv[0]);
+            exit(EXIT_FAILURE);
+            break;
         }
     }
 
     /* create virtual jfs */
-    jfs_t* jj;
+    jfs_t *jj;
     if (!(jj = init_jfs(size))) {
         fprintf(stderr, "ERROR: Failed to init_jfs\n");
         exit(EXIT_FAILURE);
@@ -266,7 +257,7 @@ main(int argc, char** argv)
     printf("Time information:\n\n");
     printf("%f seconds total\n", elapsed);
 
-    struct report* report = &jj->d->report;
+    struct report *report = &jj->d->report;
     if (log_mode)
         log_info(report);
     printf("-------------------------\n");
@@ -298,10 +289,28 @@ main(int argc, char** argv)
            report->current_block_swap_count);
 #endif
 #ifdef VIRTUAL_GROUPS
-    printf("Total dual swap count      = %17ld blocks\n",
+    printf("granularity                 =  %lu tracks\n", granularity);
+    printf("Total dual swap count       = %17ld blocks\n",
            report->dual_swap_count);
 #endif
 
+    printf("-------------------------\n");
+    printf("Secure Deletion Latency     = %17lu ns\n",
+           report->total_delete_write_time + report->total_delete_read_time);
+    printf("Read Latency                = %17lu ns\n", report->total_read_time);
+    printf("Write Latency               = %17lu ns\n",
+           report->total_write_time + report->total_read_virtual_time);
+    printf("Accumulated Write Size      = %17lu B\n",
+           report->total_write_actual_size + report->total_write_virtual_size);
+    printf("Accumulated Read Size       = %17lu B\n",
+           report->total_read_actual_size);
+    printf("Accumulated SD Size         = %17lu B\n",
+           report->total_delete_write_actual_size +
+               report->total_delete_write_virtual_size);
+
+    printf("Accumulated TR Size         = %17lu B\n",
+           report->total_write_virtual_size +
+               report->total_delete_write_virtual_size);
     printf("-------------------------\n");
     printf("Total access time           = %17lu ns\n",
            report->total_access_time);
@@ -313,7 +322,6 @@ main(int argc, char** argv)
            report->total_delete_write_time);
     printf("Total delete read time      = %17lu ns\n",
            report->total_delete_read_time);
-
     printf("\n");
     printf("Total read actual size      = %17lu MB\n",
            report->total_read_actual_size / MEGABYTE);
