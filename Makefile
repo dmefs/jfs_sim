@@ -10,17 +10,21 @@ IMR_OBJS= IMRSimulator/src/lba.c IMRSimulator/src/pba.c IMRSimulator/src/batch.c
 TOP_BUFFER_OBJS= IMRSimulator/src/top_buffer.c IMRSimulator/src/scp.c
 BLOCK_SWAP_OBJS= IMRSimulator/src/block_swap.c
 VG_OBJS = IMRSimulator/src/fid_table.c IMRSimulator/src/virtual_groups.c IMRSimulator/src/dump.c
+VG_HISTORY_OBJS = IMRSimulator/src/ring_buffer.c
 JFS_OBJS= src/command_table.c src/jfs.c
 
 CPPFLAGS=-std=c++11 -Wfatal-errors -Wall
 LDFLAGS= -lgtest -lpthread
-CFLAGS=-Wfatal-errors -Wall
+CFLAGS=-Wfatal-errors -Wall -g
 INCLUDE_FLAGS=-IIMRSimulator/include -Isrc
 IMR_FLAGS=-DJFS
 
 all: native zalloc topbuffer blockswap vg
 ut_main: dirs
 	$(CXX) $(CPPFLAGS) test/ut_main.cpp $(SRC) $(IMRS) -o bin/ut_main $(LDFLAGS)
+
+cmr: $(OBJS) dirs
+	$(CC) $(CFLAGS) -DCMR test/main.c -o bin/cmr $(JFS_OBJS) $(IMR_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
 
 native: $(OBJS) dirs
 	$(CC) $(CFLAGS) -DNATIVE test/main.c -o bin/native $(JFS_OBJS) $(IMR_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
@@ -36,6 +40,12 @@ blockswap: $(OBJS) $(TOP_BUFFER_OBJS) $(BLOCK_SWAP_OBJS)
 
 vg: $(OBJS) dirs $(OBJS) $(VG_OBJS)
 	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS test/main.c -o bin/vg $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
+
+vg_reserved: $(OBJS) dirs $(OBJS) $(VG_OBJS)
+	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS -DRESERVED_END_TRACK test/main.c -o bin/$@ $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
+
+vg_history: $(OBJS) dirs $(OBJS) $(VG_OBJS) $(VG_HISTORY_OBJS)
+	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS -DATTR_HISTORY test/main.c -o bin/$@ $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) $(VG_HISTORY_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
 
 test1g: top_buffer
 	./bin/jfs -i instructions/1m_1024_333 -s 2
