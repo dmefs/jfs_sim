@@ -16,6 +16,7 @@ bool is_csv_flag = false;
 #ifdef VIRTUAL_GROUPS
 extern unsigned long granularity;
 #endif
+unsigned long long bytes;
 
 void parsing_csv(jfs_t *fs, FILE *stream)
 {
@@ -25,7 +26,6 @@ void parsing_csv(jfs_t *fs, FILE *stream)
     size_t len;
     unsigned long fid, remain, remainder, num_bytes, left, num_traces, percent,
         ten_percent;
-    unsigned long long bytes;
     int c;
     num_traces = 4500000;
     percent = num_traces / 100;
