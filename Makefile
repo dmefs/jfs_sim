@@ -32,19 +32,19 @@ native: $(OBJS) dirs
 zalloc: $(OBJS) dirs
 	$(CC) $(CFLAGS) $(INCLUDE_FLAGS) -DZALLOC test/main.c -o bin/zalloc $(OBJS) $(JFS_OBJS) $(IMR_OBJS) $(IMR_FLAGS)
 
-topbuffer: $(OBJS) $(TOP_BUFFER_OBJS)
+topbuffer: $(OBJS) $(TOP_BUFFER_OBJS) dirs
 	$(CC) $(CFLAGS) $(INCLUDE_FLAGS) -DTOP_BUFFER test/main.c -o bin/topbuffer $(JFS_OBJS) $(IMR_OBJS) $(OBJS) $(TOP_BUFFER_OBJS) $(IMR_FLAGS)
 
-blockswap: $(OBJS) $(TOP_BUFFER_OBJS) $(BLOCK_SWAP_OBJS)
+blockswap: $(OBJS) $(TOP_BUFFER_OBJS) $(BLOCK_SWAP_OBJS) dirs
 	$(CC) $(CFLAGS) $(INCLUDE_FLAGS) -DBLOCK_SWAP test/main.c -o bin/blockswap $(JFS_OBJS) $(IMR_OBJS) $(OBJS) $(TOP_BUFFER_OBJS) $(BLOCK_SWAP_OBJS) $(IMR_FLAGS)
 
-vg: $(OBJS) dirs $(OBJS) $(VG_OBJS)
+vg: $(OBJS) dirs $(OBJS) $(VG_OBJS) dirs
 	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS test/main.c -o bin/vg $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
 
-vg_reserved: $(OBJS) dirs $(OBJS) $(VG_OBJS)
+vg_reserved: $(OBJS) dirs $(OBJS) $(VG_OBJS) dirs
 	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS -DRESERVED_END_TRACK test/main.c -o bin/$@ $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
 
-vg_history: $(OBJS) dirs $(OBJS) $(VG_OBJS) $(VG_HISTORY_OBJS)
+vg_history: $(OBJS) dirs $(OBJS) $(VG_OBJS) $(VG_HISTORY_OBJS) dirs
 	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS -DATTR_HISTORY test/main.c -o bin/$@ $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) $(VG_HISTORY_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
 
 test1g: top_buffer

@@ -169,6 +169,7 @@ int open_log_files()
     return EXIT_SUCCESS;
 }
 
+#if 0
 void log_info(struct report *re)
 {
     char s[200];
@@ -177,7 +178,7 @@ void log_info(struct report *re)
         fprintf(stderr, "Couldn't open log files.\n");
         exit(EXIT_FAILURE);
     }
-    n = sprintf(s, "%lu,%lu,%lu,%lu,%lu,%lu,%lu\n",
+    n = sprintf(s, "%llu,%llu,%llu,%llu,%llu,%llu,%llu\n",
                 re->total_read_actual_size / MEGABYTE,
                 re->total_read_virtual_size / MEGABYTE,
                 re->total_write_actual_size / MEGABYTE,
@@ -186,7 +187,7 @@ void log_info(struct report *re)
                 re->total_delete_write_virtual_size / MEGABYTE,
                 re->total_delete_read_virtual_size / MEGABYTE);
     fwrite(s, 1, n, fsize);
-    n = sprintf(s, "%lu,%lu,%lu,%lu,%lu,%lu\n", re->total_access_time,
+    n = sprintf(s, "%llu,%llu,%llu,%llu,%llu,%llu\n", re->total_access_time,
                 re->total_write_time, re->total_read_time,
                 re->total_read_virtual_time, re->total_delete_write_time,
                 re->total_delete_read_time);
@@ -195,6 +196,7 @@ void log_info(struct report *re)
     fclose(ftime);
     fclose(ffeature);
 }
+#endif
 
 int main(int argc, char **argv)
 {
@@ -258,8 +260,8 @@ int main(int argc, char **argv)
     printf("%f seconds total\n", elapsed);
 
     struct report *report = &jj->d->report;
-    if (log_mode)
-        log_info(report);
+    // if (log_mode)
+    //     log_info(report);
     printf("-------------------------\n");
     printf("Disk information.\n");
     printf("Size of disk = %d GB\n", size);
@@ -271,70 +273,58 @@ int main(int argc, char **argv)
            jfs.write_ins_count);
     printf("Total number of delete instructions = %16lld instructions\n",
            jfs.delete_ins_count);
-    printf("Total number of invalid read        = %16lu blocks\n",
+    printf("Total number of invalid read        = %16llu blocks\n",
            report->num_invalid_read);
-    printf("Total number of invalid write       = %16lu blocks\n",
+    printf("Total number of invalid write       = %16llu blocks\n",
            report->num_invalid_write);
 
 #ifdef TOP_BUFFER
     printf("-------------------------\n");
-    printf("Total write top buffer size = %17lu MB\n",
+    printf("Total write top buffer size = %17llu MB\n",
            report->total_write_top_buffer_size / MEGABYTE);
-    printf("Total read scp size         = %17lu MB\n",
+    printf("Total read scp size         = %17llu MB\n",
            report->total_read_scp_size / MEGABYTE);
     printf("Total scp count             = %17d times\n", report->scp_count);
 #endif
 #ifdef BLOCK_SWAP
-    printf("Total block swap count      = %17ld blocks\n",
+    printf("Total block swap count      = %17lld blocks\n",
            report->current_block_swap_count);
 #endif
 #ifdef VIRTUAL_GROUPS
     printf("granularity                 =  %lu tracks\n", granularity);
-    printf("Total dual swap count       = %17ld blocks\n",
+    printf("Total dual swap count       = %17lld blocks\n",
            report->dual_swap_count);
 #endif
 
     printf("-------------------------\n");
-    printf("Secure Deletion Latency     = %17lu ns\n",
+    printf("Secure Deletion Latency     = %17llu ns\n",
            report->total_delete_write_time + report->total_delete_read_time);
-    printf("Read Latency                = %17lu ns\n", report->total_read_time);
-    printf("Write Latency               = %17lu ns\n",
-           report->total_write_time + report->total_read_virtual_time);
-    printf("Accumulated Write Size      = %17lu B\n",
-           report->total_write_actual_size + report->total_write_virtual_size);
-    printf("Accumulated Read Size       = %17lu B\n",
-           report->total_read_actual_size);
-    printf("Accumulated SD Size         = %17lu B\n",
+    printf("###### Normal Mode ######\n");
+    printf("Read Latency                = %17llu ns\n", report->normal.total_read_time);
+    printf("Write Latency               = %17llu ns\n",
+           report->normal.total_write_time + report->normal.total_read_virtual_time);
+    printf("Accumulated Write Size      = %17llu B\n",
+           report->normal.total_write_actual_size + report->normal.total_write_virtual_size);
+    printf("Accumulated Read Size       = %17llu B\n",
+           report->normal.total_read_actual_size);
+    printf("###### Journaling Mode ######\n");
+    printf("Read Latency                = %17llu ns\n", report->journaling.total_read_time);
+    printf("Write Latency               = %17llu ns\n",
+           report->journaling.total_write_time + report->journaling.total_read_virtual_time);
+    printf("Accumulated Write Size      = %17llu B\n",
+           report->journaling.total_write_actual_size + report->journaling.total_write_virtual_size);
+    printf("Accumulated Read Size       = %17llu B\n",
+           report->journaling.total_read_actual_size);
+    printf("#############################");
+    printf("Accumulated SD Size         = %17llu B\n",
            report->total_delete_write_actual_size +
                report->total_delete_write_virtual_size);
 
-    printf("Accumulated TR Size         = %17lu B\n",
-           report->total_write_virtual_size +
+    printf("Accumulated TR Size         = %17llu B\n",
+           report->normal.total_write_virtual_size +
+           report->journaling.total_write_virtual_size +
                report->total_delete_write_virtual_size);
     printf("-------------------------\n");
-    printf("Total access time           = %17lu ns\n",
-           report->total_access_time);
-    printf("Total write time            = %17lu ns\n",
-           report->total_write_time);
-    printf("Total read time             = %17lu ns\n", report->total_read_time);
-    printf("Total read virtual time     = %17lu ns\n", report->total_read_time);
-    printf("Total delete write time     = %17lu ns\n",
-           report->total_delete_write_time);
-    printf("Total delete read time      = %17lu ns\n",
-           report->total_delete_read_time);
-    printf("\n");
-    printf("Total read actual size      = %17lu MB\n",
-           report->total_read_actual_size / MEGABYTE);
-    printf("Total read virtual size     = %17lu MB\n",
-           report->total_read_virtual_size / MEGABYTE);
-    printf("Total write virtual size    = %17lu MB\n",
-           report->total_write_virtual_size / MEGABYTE);
-    printf("Total write actual size     = %17lu MB\n",
-           report->total_write_actual_size / MEGABYTE);
-    printf("Total delete virtual size   = %17lu MB\n",
-           report->total_delete_write_virtual_size / MEGABYTE);
-    printf("Total delete actual size    = %17lu MB\n",
-           report->total_delete_write_actual_size / MEGABYTE);
     end_jfs(jj);
 
     return 0;

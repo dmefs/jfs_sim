@@ -3,8 +3,10 @@
 #include <stdlib.h>
 #include "command_table.h"
 #include "lba.h"
+#include "op_mode.h"
 
 jfs_t jfs;
+op_mode_t recording_mode;
 
 jfs_operations jfs_ops = {
     .read = jfs_read,
@@ -69,12 +71,14 @@ void end_jarea(jarea_t *jarea)
 
 int jarea_write(jfs_t *fs, unsigned long lba, size_t n, unsigned long fid)
 {
+    recording_mode = journaling_op_mode;
     fs->jarea.size += n;
     return fs->d->d_op->journaling_write(fs->d, lba, n, fid);
 }
 
 int jarea_read(jfs_t *fs, unsigned long lba, size_t n, unsigned long fid)
 {
+    recording_mode = journaling_op_mode;
     if ((lba + n) > fs->jarea.max_jarea_num) {
         fprintf(
             stderr,
@@ -110,6 +114,7 @@ int jfs_write(jfs_t *fs, unsigned long lba, size_t n, unsigned long fid)
 
 int jfs_read(jfs_t *fs, unsigned long lba, size_t n, unsigned long fid)
 {
+    recording_mode = normal_op_mode;
     unsigned long jarea_lba = 0;
     if ((lba + n + fs->jarea.max_jarea_num) > fs->d->report.max_block_num)
         return 0;
@@ -126,8 +131,11 @@ void flush_command_table(transaction_head_t *head,
     for (size_t i = 0; i < head->size; i++) {
         transaction_t *t = &head->table[i];
         if (t->valid) {
+            recording_mode = journaling_op_mode;
             d->d_op->read(d, t->jarea_lba, t->size, t->fid);
+            recording_mode = normal_op_mode;
             d->d_op->write(d, t->lba + offset, t->size, t->fid);
+            recording_mode = journaling_op_mode;
             d->d_op->invalid(d, t->jarea_lba, t->size, t->fid);
             invalid_reference_table(reference_table, t->lba);
         }
