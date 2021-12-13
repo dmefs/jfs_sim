@@ -299,30 +299,40 @@ int main(int argc, char **argv)
     printf("-------------------------\n");
     printf("Secure Deletion Latency     = %17llu ns\n",
            report->total_delete_write_time + report->total_delete_read_time);
+    printf("#########################\n");
     printf("###### Normal Mode ######\n");
-    printf("Read Latency                = %17llu ns\n", report->normal.total_read_time);
+    printf("#########################\n");
+    printf("Read Latency                = %17llu ns\n",
+           report->normal.total_read_time);
     printf("Write Latency               = %17llu ns\n",
-           report->normal.total_write_time + report->normal.total_read_virtual_time);
+           report->normal.total_write_time +
+               report->normal.total_read_virtual_time);
     printf("Accumulated Write Size      = %17llu B\n",
-           report->normal.total_write_actual_size + report->normal.total_write_virtual_size);
+           report->normal.total_write_actual_size +
+               report->normal.total_write_virtual_size);
     printf("Accumulated Read Size       = %17llu B\n",
            report->normal.total_read_actual_size);
-    printf("###### Journaling Mode ######\n");
-    printf("Read Latency                = %17llu ns\n", report->journaling.total_read_time);
+    printf("#########################\n");
+    printf("#### Journaling Mode ####\n");
+    printf("#########################\n");
+    printf("Read Latency                = %17llu ns\n",
+           report->journaling.total_read_time);
     printf("Write Latency               = %17llu ns\n",
-           report->journaling.total_write_time + report->journaling.total_read_virtual_time);
+           report->journaling.total_write_time +
+               report->journaling.total_read_virtual_time);
     printf("Accumulated Write Size      = %17llu B\n",
-           report->journaling.total_write_actual_size + report->journaling.total_write_virtual_size);
+           report->journaling.total_write_actual_size +
+               report->journaling.total_write_virtual_size);
     printf("Accumulated Read Size       = %17llu B\n",
            report->journaling.total_read_actual_size);
-    printf("#############################");
+    printf("#########################\n");
     printf("Accumulated SD Size         = %17llu B\n",
            report->total_delete_write_actual_size +
                report->total_delete_write_virtual_size);
 
     printf("Accumulated TR Size         = %17llu B\n",
            report->normal.total_write_virtual_size +
-           report->journaling.total_write_virtual_size +
+               report->journaling.total_write_virtual_size +
                report->total_delete_write_virtual_size);
     printf("-------------------------\n");
     end_jfs(jj);
