@@ -19,7 +19,7 @@ CFLAGS=-Wfatal-errors -Wall -g
 INCLUDE_FLAGS=-IIMRSimulator/include -Isrc
 IMR_FLAGS=-DJFS
 
-all: native zalloc topbuffer blockswap vg
+all: cmr native blockswap vg_history
 ut_main: dirs
 	$(CXX) $(CPPFLAGS) test/ut_main.cpp $(SRC) $(IMRS) -o bin/ut_main $(LDFLAGS)
 
