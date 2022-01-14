@@ -55,7 +55,7 @@ void end_jfs(jfs_t *fs)
 
 int init_jarea(jarea_t *jarea, unsigned long max_block_size)
 {
-    unsigned long jarea_block_size = max_block_size / 100;
+    unsigned long jarea_block_size = max_block_size / 100 * 2;
     jarea->max_jarea_num = jarea_block_size;
     jarea->capacity = jarea_block_size;
     jarea->size = 0;
@@ -158,6 +158,7 @@ void delete_fid_command_table(transaction_head_t *head, unsigned long fid)
 int jfs_delete(jfs_t *fs, unsigned long lba, size_t n, unsigned long fid)
 {
     delete_fid_command_table(&fs->head, fid);
+    recording_mode = normal_op_mode;
     return fs->d->d_op->remove(fs->d, lba, n, fid);
 }
 

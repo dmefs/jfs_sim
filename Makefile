@@ -19,7 +19,7 @@ CFLAGS=-Wfatal-errors -Wall -g
 INCLUDE_FLAGS=-IIMRSimulator/include -Isrc
 IMR_FLAGS=-DJFS
 
-all: cmr native blockswap vg_history
+all: cmr native blockswap blockswap_virtual vg vg_reserved vg_history 
 ut_main: dirs
 	$(CXX) $(CPPFLAGS) test/ut_main.cpp $(SRC) $(IMRS) -o bin/ut_main $(LDFLAGS)
 
@@ -38,6 +38,9 @@ topbuffer: $(OBJS) $(TOP_BUFFER_OBJS) dirs
 blockswap: $(OBJS) $(TOP_BUFFER_OBJS) $(BLOCK_SWAP_OBJS) dirs
 	$(CC) $(CFLAGS) $(INCLUDE_FLAGS) -DBLOCK_SWAP test/main.c -o bin/blockswap $(JFS_OBJS) $(IMR_OBJS) $(OBJS) $(TOP_BUFFER_OBJS) $(BLOCK_SWAP_OBJS) $(IMR_FLAGS)
 
+blockswap_virtual: $(OBJS) $(TOP_BUFFER_OBJS) $(BLOCK_SWAP_OBJS) dirs
+	$(CC) $(CFLAGS) $(INCLUDE_FLAGS) -DBLOCK_SWAP -DZALLOC_JOURNAL_VIRTUAL test/main.c -o bin/blockswap_virtual $(JFS_OBJS) $(IMR_OBJS) $(OBJS) $(TOP_BUFFER_OBJS) $(BLOCK_SWAP_OBJS) $(IMR_FLAGS)
+
 vg: $(OBJS) dirs $(OBJS) $(VG_OBJS) dirs
 	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS test/main.c -o bin/vg $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
 
@@ -55,7 +58,11 @@ test100g: imr
 
 SIZE=2
 TRACE=1m_1024_333
-testall: native zalloc topbuffer blockswap vg
+EXEC_FILE="cmr native blockswap blockswap_virtual vg vg_reserved vg_history"
+run_trace:
+	@./run_trace.sh
+	@python3 csv_to_excel.py
+testall: cmr native blockswap blockswap_virtual vg vg_reserved vg_history
 	./bin/native -s $(SIZE) -i instructions/$(TRACE)
 	./bin/zalloc -s $(SIZE) -i instructions/$(TRACE)
 	./bin/topbuffer -s $(SIZE) -i instructions/$(TRACE)
