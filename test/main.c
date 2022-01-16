@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <libgen.h>
+#include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -141,8 +142,9 @@ void start_parsing(jfs_t *fs, char *file_name)
 
     stream = fopen(file_name, "r");
     if (!stream) {
-        fprintf(stderr, "ERROR: open file failed. %s\n", strerror(errno));
-        return;
+        fprintf(stderr, "ERROR: open file = %s failed. %s\n", file_name,
+                strerror(errno));
+        exit(EXIT_FAILURE);
     }
     if (is_csv_flag)
         parsing_csv(fs, stream);
@@ -175,9 +177,8 @@ void save_data(jfs_t *jj, char *filename)
     FILE *f;
     struct report *report = &jj->d->report;
 
-    sleep(1);
-    if (NULL == (f = fopen(filename, "a+")))
-        return;
+    while (NULL == (f = fopen(filename, "a+")))
+        sleep(1);
     fprintf(
         f, "%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,",
         report->total_delete_time, report->normal.total_write_time,
@@ -200,72 +201,12 @@ void save_data(jfs_t *jj, char *filename)
 #else
     fprintf(f, "0,0\n");
 #endif
+    fflush(f);
     fclose(f);
 }
-int main(int argc, char **argv)
+
+void printReport(struct report *report, int size)
 {
-    int size, opt, len;
-    char input_file[MAX_LENS + 1];
-    time_t start_time, end_time;
-
-    opt = 0;
-
-    /* parse arguments */
-    while ((opt = getopt(argc, argv, "cls:i:g:")) != -1) {
-        switch (opt) {
-        case 'c':
-            is_csv_flag = true;
-            break;
-        case 's':
-            size = atoi(optarg);
-            break;
-        case 'i':
-            len = strlen(optarg);
-            if (len > MAX_LENS)
-                len = MAX_LENS;
-            strncpy(input_file, optarg, len);
-            input_file[len] = '\0';
-            break;
-        case 'l':
-            log_mode = true;
-            break;
-#ifdef VIRTUAL_GROUPS
-        case 'g':
-            granularity = atoi(optarg);
-            break;
-#endif
-        default:
-            fprintf(stderr, "Usage: %s [-s size(GB)] [-i input_file_name]\n",
-                    argv[0]);
-            exit(EXIT_FAILURE);
-            break;
-        }
-    }
-
-    /* create virtual jfs */
-    jfs_t *jj;
-    if (!(jj = init_jfs(size))) {
-        fprintf(stderr, "ERROR: Failed to init_jfs\n");
-        exit(EXIT_FAILURE);
-    } else {
-        printf("[OK] Init init_jfs\n");
-    }
-
-    /* parse operations file */
-    printf("Start parsing...\n");
-    time(&start_time);
-    start_parsing(jj, input_file);
-    time(&end_time);
-    printf("Start parsing[OK]\n");
-
-    double elapsed = difftime(end_time, start_time);
-    printf("-------------------------\n");
-    printf("Time information:\n\n");
-    printf("%f seconds total\n", elapsed);
-
-    struct report *report = &jj->d->report;
-    // if (log_mode)
-    //     log_info(report);
     printf("-------------------------\n");
     printf("Disk information.\n");
     printf("Size of disk = %d GB\n", size);
@@ -338,7 +279,74 @@ int main(int argc, char **argv)
     printf("Total Delete Block Size = %19lu B\n",
            report->total_delete_write_block_size);
     printf("End\n");
+}
 
+jmp_buf env;
+int main(int argc, char **argv)
+{
+    int size, opt, len;
+    char input_file[MAX_LENS + 1];
+    time_t start_time, end_time;
+
+    opt = 0;
+
+    /* parse arguments */
+    while ((opt = getopt(argc, argv, "cls:i:g:")) != -1) {
+        switch (opt) {
+        case 'c':
+            is_csv_flag = true;
+            break;
+        case 's':
+            size = atoi(optarg);
+            break;
+        case 'i':
+            len = strlen(optarg);
+            if (len > MAX_LENS)
+                len = MAX_LENS;
+            strncpy(input_file, optarg, len);
+            input_file[len] = '\0';
+            break;
+        case 'l':
+            log_mode = true;
+            break;
+#ifdef VIRTUAL_GROUPS
+        case 'g':
+            granularity = atoi(optarg);
+            break;
+#endif
+        default:
+            fprintf(stderr, "Usage: %s [-s size(GB)] [-i input_file_name]\n",
+                    argv[0]);
+            exit(EXIT_FAILURE);
+            break;
+        }
+    }
+
+    /* create virtual jfs */
+    jfs_t *jj;
+    if (!(jj = init_jfs(size))) {
+        fprintf(stderr, "ERROR: Failed to init_jfs\n");
+        exit(EXIT_FAILURE);
+    } else {
+        printf("[OK] Init init_jfs\n");
+    }
+
+
+    /* parse operations file */
+    printf("Start parsing...\n");
+    time(&start_time);
+    if (0 == setjmp(env))
+        start_parsing(jj, input_file);
+    time(&end_time);
+    printf("Start parsing[OK]\n");
+
+    double elapsed = difftime(end_time, start_time);
+    printf("-------------------------\n");
+    printf("Time information:\n\n");
+    printf("%f seconds total\n", elapsed);
+
+    // struct report *report = &jj->d->report;
+    // printReport(report, size);
     save_data(jj, basename(input_file));
     end_jfs(jj);
 

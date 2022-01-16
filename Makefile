@@ -9,15 +9,20 @@ SRC := $(wildcard $(SRC_DIR)/*.c)
 IMR_OBJS= IMRSimulator/src/lba.c IMRSimulator/src/pba.c IMRSimulator/src/batch.c IMRSimulator/src/chs.c IMRSimulator/src/record_op.c IMRSimulator/src/rw.c
 TOP_BUFFER_OBJS= IMRSimulator/src/top_buffer.c IMRSimulator/src/scp.c
 BLOCK_SWAP_OBJS= IMRSimulator/src/block_swap.c
-VG_OBJS = IMRSimulator/src/fid_table.c IMRSimulator/src/virtual_groups.c IMRSimulator/src/dump.c
+VG_OBJS = IMRSimulator/src/fid_table.c IMRSimulator/src/virtual_groups.c IMRSimulator/src/dump.c 
 VG_HISTORY_OBJS = IMRSimulator/src/ring_buffer.c
 JFS_OBJS= src/command_table.c src/jfs.c
 
 CPPFLAGS=-std=c++11 -Wfatal-errors -Wall
 LDFLAGS= -lgtest -lpthread
-CFLAGS=-Wfatal-errors -Wall -g
+CFLAGS=-Wfatal-errors -Wall
 INCLUDE_FLAGS=-IIMRSimulator/include -Isrc
 IMR_FLAGS=-DJFS
+
+ifdef DEBUG
+CFLAGS += -DCONFIG_DEBUG_LIST
+VG_OBJS += IMRSimulator/src/list_debug.c
+endif
 
 all: cmr native blockswap blockswap_virtual vg vg_reserved vg_history 
 ut_main: dirs
@@ -76,4 +81,4 @@ dirs:
 	mkdir -p bin
 
 clean:
-	rm -f bin/*
+	rm -f bin/* *.csv *.xlsx

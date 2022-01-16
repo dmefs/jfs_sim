@@ -9,8 +9,8 @@ wb_item_name = ["CMR", "Native IMR", "BlockSwap", "BlockSwap virtual 1 %", "vg 3
                 "vg 64MB", "vg 128MB", "vg 256MB", "vg_reserved 32MB", "vg_reserved 64MB",
                 "vg_reserved 128MB", "vg_reserved 256MB", "vg_history 32MB", "vg_history 64MB",
                 "vg_history 128MB", "vg_history 256MB"]
-traces_name = ["1GB_10GB", "1GB_50GB",
-               "10MB_10GB", "10MB_50GB"]
+traces_name = ["1GB_10GB", "1GB_50GB", "1GB_80GB",
+               "10MB_10GB", "10MB_50GB", "10MB_80GB", "TPCC.trace", "TPCE.trace"]
 traces_df = []
 traces_df_list = []
 
