@@ -12,10 +12,11 @@ BLOCK_SWAP_OBJS= IMRSimulator/src/block_swap.c
 VG_OBJS = IMRSimulator/src/fid_table.c IMRSimulator/src/virtual_groups.c IMRSimulator/src/dump.c 
 VG_HISTORY_OBJS = IMRSimulator/src/ring_buffer.c
 JFS_OBJS= src/command_table.c src/jfs.c
+FORCE_SECURE_DELETION_OBJ= IMRSimulator/src/force_secure_deletion.c
 
 CPPFLAGS=-std=c++11 -Wfatal-errors -Wall
 LDFLAGS= -lgtest -lpthread
-CFLAGS=-Wfatal-errors -Wall
+CFLAGS=-Wfatal-errors -Wall -g
 INCLUDE_FLAGS=-IIMRSimulator/include -Isrc
 IMR_FLAGS=-DJFS
 
@@ -24,7 +25,7 @@ CFLAGS += -DCONFIG_DEBUG_LIST
 VG_OBJS += IMRSimulator/src/list_debug.c
 endif
 
-all: cmr native blockswap blockswap_virtual vg vg_reserved vg_history 
+all: cmr native blockswap blockswap_virtual vg vg_reserved vg_history vg_force_sd
 ut_main: dirs
 	$(CXX) $(CPPFLAGS) test/ut_main.cpp $(SRC) $(IMRS) -o bin/ut_main $(LDFLAGS)
 
@@ -54,6 +55,9 @@ vg_reserved: $(OBJS) dirs $(OBJS) $(VG_OBJS) dirs
 
 vg_history: $(OBJS) dirs $(OBJS) $(VG_OBJS) $(VG_HISTORY_OBJS) dirs
 	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS -DATTR_HISTORY test/main.c -o bin/$@ $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) $(VG_HISTORY_OBJS) $(INCLUDE_FLAGS) $(IMR_FLAGS)
+
+vg_force_sd: $(OBJS) dirs $(OBJS) $(VG_OBJS) $(FORCE_SECURE_DELETION_OBJ) dirs
+	$(CC) $(CFLAGS) -DVIRTUAL_GROUPS -DFORCE_SECURE_DELETION test/main.c -o bin/$@ $(JFS_OBJS) $(IMR_OBJS) $(VG_OBJS) $(FORCE_SECURE_DELETION_OBJ) $(INCLUDE_FLAGS) $(IMR_FLAGS) 
 
 test1g: top_buffer
 	./bin/jfs -i instructions/1m_1024_333 -s 2

@@ -180,7 +180,7 @@ void save_data(jfs_t *jj, char *filename)
     while (NULL == (f = fopen(filename, "a+")))
         sleep(1);
     fprintf(
-        f, "%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,",
+        f, "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,",
         report->total_delete_time, report->normal.total_write_time,
         report->journaling.total_write_time, report->normal.total_read_time,
         report->journaling.total_read_time,
@@ -191,12 +191,12 @@ void save_data(jfs_t *jj, char *filename)
         report->total_delete_write_size, report->total_delete_rewrite_size,
         report->total_delete_reread_size);
 #ifdef VIRTUAL_GROUPS
-    fprintf(f, "%lu,", report->dual_swap_count);
+    fprintf(f, "%llu,", report->dual_swap_count);
 #else
     fprintf(f, "0,");
 #endif
 #ifdef TOP_BUFFER
-    fprintf(f, "%lu,%d\n", report->total_write_top_buffer_size / MEGABYTE,
+    fprintf(f, "%llu,%d\n", report->total_write_top_buffer_size / MEGABYTE,
             report->scp_count);
 #else
     fprintf(f, "0,0\n");
@@ -218,65 +218,185 @@ void printReport(struct report *report, int size)
            jfs.write_ins_count);
     printf("Total number of delete instructions = %16lld instructions\n",
            jfs.delete_ins_count);
-    printf("Total number of invalid read        = %16lu blocks\n",
+    printf("Total number of invalid read        = "
+#if defined(__APPLE__)
+"%16llu"
+#else
+"%16lu"
+#endif
+" blocks\n",
            report->num_invalid_read);
-    printf("Total number of invalid write       = %16lu blocks\n",
+    printf("Total number of invalid write       = "
+#if defined(__APPLE__)
+"%16llu"
+#else
+"%16lu"
+#endif
+" blocks\n",
            report->num_invalid_write);
 
 #ifdef TOP_BUFFER
     printf("-------------------------\n");
-    printf("Total write top buffer size = %19lu MB\n",
+    printf("Total write top buffer size = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" MB\n",
            report->total_write_top_buffer_size / MEGABYTE);
-    printf("Total read scp size         = %19lu MB\n",
+    printf("Total read scp size         = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" MB\n",
            report->total_read_scp_size / MEGABYTE);
     printf("Total scp count             = %19d times\n", report->scp_count);
 #endif
 #ifdef BLOCK_SWAP
-    printf("Total block swap count      = %19ld blocks\n",
+    printf("Total block swap count      = "
+#if defined(__APPLE__)
+"%19lld"
+#else
+"%19ld"
+#endif
+" blocks\n",
            report->current_block_swap_count);
 #endif
 #ifdef VIRTUAL_GROUPS
     printf("granularity                 =  %lu tracks\n", granularity);
-    printf("Total dual swap count       = %19ld blocks\n",
+    printf("Total dual swap count       = "
+#if defined(__APPLE__)
+"%19lld"
+#else
+"%19ld"
+#endif
+" blocks\n",
            report->dual_swap_count);
 #endif
 
     printf("#########################\n");
     printf("######## Latency ########\n");
     printf("#########################\n");
-    printf("Secure Deletion Latency = %19lu ns\n", report->total_delete_time);
-    printf("Data Write Latency      = %19lu ns\n",
+    printf("Secure Deletion Latency = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" ns\n", report->total_delete_time);
+    printf("Data Write Latency      = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" ns\n",
            report->normal.total_write_time);
-    printf("Journal Write Latency   = %19lu ns\n",
+    printf("Journal Write Latency   = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" ns\n",
            report->journaling.total_write_time);
-    printf("Data Read Latency       = %19lu ns\n",
+    printf("Data Read Latency       = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" ns\n",
            report->normal.total_read_time);
-    printf("Journal Read Latency    = %19lu ns\n",
+    printf("Journal Read Latency    = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" ns\n",
            report->journaling.total_read_time);
     printf("#########################\n");
     printf("######### Size ##########\n");
     printf("#########################\n");
     printf(
-        "Write Size              = %19lu B\n",
+        "Write Size              = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" B\n",
         report->normal.total_write_size + report->journaling.total_write_size);
     printf("Data + Journal:\n");
-    printf("Rewrite Size            = %19lu B\n", report->total_rewrite_size);
-    printf("Reread Size             = %19lu B\n", report->total_reread_size);
+    printf("Rewrite Size            = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" B\n", report->total_rewrite_size);
+    printf("Reread Size             = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" B\n", report->total_reread_size);
     printf("#########################\n");
     printf("Secure Deletion:\n");
-    printf("Write Size              = %19lu B\n",
+    printf("Write Size              = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" B\n",
            report->total_delete_write_size);
-    printf("Rewrite Size            = %19lu B\n",
+    printf("Rewrite Size            = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" B\n",
            report->total_delete_rewrite_size);
-    printf("Reread Size             = %19lu B\n",
+    printf("Reread Size             = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" B\n",
            report->total_delete_reread_size);
     printf("#########################\n");
-    printf("Total Write Block Size  = %19lu B\n",
+    printf("Total Write Block Size  = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" B\n",
            report->normal.total_write_block_size);
-    printf("Total Read Block Size   = %19lu B\n",
+    printf("Total Read Block Size   = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" B\n",
            report->normal.total_read_block_size +
                report->journaling.total_read_block_size);
-    printf("Total Delete Block Size = %19lu B\n",
+    printf("Total Delete Block Size = "
+#if defined(__APPLE__)
+"%19llu"
+#else
+"%19lu"
+#endif
+" B\n",
            report->total_delete_write_block_size);
     printf("End\n");
 }
@@ -321,7 +441,6 @@ int main(int argc, char **argv)
             break;
         }
     }
-
     /* create virtual jfs */
     jfs_t *jj;
     if (!(jj = init_jfs(size))) {
@@ -345,8 +464,8 @@ int main(int argc, char **argv)
     printf("Time information:\n\n");
     printf("%f seconds total\n", elapsed);
 
-    // struct report *report = &jj->d->report;
-    // printReport(report, size);
+    struct report *report = &jj->d->report;
+    printReport(report, size);
     save_data(jj, basename(input_file));
     end_jfs(jj);
 
